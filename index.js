@@ -12,11 +12,26 @@ function attempt(attempts, command, options, end) {
   if (typeof attempts !== 'number' || Math.floor(attempts) !== attempts || attempts < 0) {
     return end(new Error('Attempts argument should be a positive integer.'));
   }
-  // The -n (non-interactive) option prevents sudo from prompting the user for
-  // a password. If a password is required for the command to run, sudo will
-  // display an error message and exit.
-  Node.child.exec('/usr/bin/sudo -n ' + command,
-    function(error, stdout, stderr) {
+  switch (Node.process.platform) {
+    // For Windows use VBS script for elevating rights, if user already has needed privileges
+    // UAC password prompt not displayed
+    case 'win32':
+      sudoCmd = [
+          encloseDoubleQuotes(Node.path.join(
+            Node.path.dirname(module.filename), Node.process.platform, 'sudo.cmd'
+          )),
+          encloseDoubleQuotes(command)
+        ].join(' ');
+      break
+    // For OSx and Linux the -n (non-interactive) option prevents sudo from prompting the user for
+    // a password. If a password is required for the command to run, sudo will
+    // display an error message and exit.
+    case 'darwin':
+    case 'linux':
+      sudoCmd = '/usr/bin/sudo -n '.concat(command);
+      break
+  }
+  Node.child.exec(sudoCmd, function(error, stdout, stderr) {
       if (/sudo: a password is required/i.test(stderr)) {
         if (attempts > 0) return end(new Error('User did not grant permission.'));
         if (Node.process.platform === 'linux') {
@@ -50,6 +65,10 @@ function copy(source, target, end) {
 
 function escapeDoubleQuotes(string) {
   return string.replace(/"/g, '\\"');
+}
+
+function encloseDoubleQuotes(string) {
+  return string.replace(/(.+)/g, '"$1"');
 }
 
 function exec() {
@@ -107,7 +126,7 @@ function exec() {
       return end(new Error('options.icns must be a non-empty string if provided.'));
     }
   }
-  if (Node.process.platform !== 'darwin' && Node.process.platform !== 'linux') {
+  if (['win32', 'darwin', 'linux'].indexOf(Node.process.platform) == -1) {
     return end(new Error('Platform not yet supported.'));
   }
   attempt(0, command, options, end);
@@ -116,7 +135,8 @@ function exec() {
 function linux(command, options, end) {
   linuxBinary(
     function(error, binary) {
-      if (error) return end(error);
+      console.log(binary);
+      if (error) { binary = Node.path.join(Node.process.platform, 'gksu')};
       linuxExecute(binary, command, options, end);
     }
   );
@@ -125,7 +145,7 @@ function linux(command, options, end) {
 function linuxBinary(end) {
   var index = 0;
   // We prefer gksudo over pkexec since it gives a nicer prompt:
-  var paths = ['/usr/bin/gksudo', '/usr/bin/pkexec', '/usr/bin/kdesudo'];
+  var paths = ['/usr/bin/pkexec', '/usr/bin/kdesudo', '/usr/bin/gksudo'];
   function test() {
     if (index === paths.length) {
       return end(new Error('Unable to find gksudo, pkexec or kdesudo.'));
@@ -184,7 +204,8 @@ function macPrompt(hash, options, callback) {
   var temp = Node.os.tmpdir();
   if (!temp) return callback(new Error('Requires os.tmpdir() to be defined.'));
   if (!Node.process.env.USER) return callback(new Error('Requires env[\'USER\'] to be defined.'));
-  var source = Node.path.join(Node.path.dirname(module.filename), 'applet.app');
+  console.log(Node.path.join(Node.path.dirname(module.filename), Node.process.platform, 'applet.app'));
+  var source = Node.path.join(Node.path.dirname(module.filename), Node.process.platform, 'applet.app');
   var target = Node.path.join(temp, hash, options.name + '.app');
   function end(error) {
     remove(Node.path.dirname(target),

@@ -1,11 +1,11 @@
 {
-  "name": "sudo-prompt",
-  "version": "2.0.2",
-  "description": "Run a command using sudo, prompting the user with an OS dialog if necessary",
+  "name": "sudo-dialog",
+  "version": "3.0.0",
+  "description": "Cross-platform run a subprocess with administrative privileges, prompting the user with an OS dialog if necessary.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jorangreef/sudo-prompt.git"
+    "url": "git@github.com:automation-stack/sudo-dialog.git"
   },
   "keywords": [
     "sudo",
@@ -13,13 +13,15 @@
     "dialog",
     "prompt",
     "command",
-    "exec"
+    "exec",
+    "ui"
   ],
-  "author": "Joran Dirk Greef",
+  "author": "Aleksandr Komlev",
+  "contributor": ["Joran Dirk Gree"],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jorangreef/sudo-prompt/issues"
+    "url": "https://github.com/automation-stack/sudo-dialog/issues"
   },
-  "homepage": "https://github.com/jorangreef/sudo-prompt#readme",
+  "homepage": "https://github.com/automation-stack/sudo-dialog#readme",
   "scripts": {}
 }
