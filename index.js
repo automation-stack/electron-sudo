@@ -295,31 +295,6 @@ function remove(target, end) {
   Node.child.exec(command, end);
 }
 
-function setName(string) {
-  // DEPRECATED to move away from a global variable towards a functional
-  // interface. Otherwise using setName could have rare race conditions when
-  // multiple calls need to use different names.
-  if (!validName(string)) {
-    throw new Error('Name must be alphanumeric only (spaces are allowed).');
-  }
-  name = string;
-}
-
-function touch(end) {
-  // DEPRECATED to reduce the surface area of the interface.
-  // Better to call exec() directly as this supports the options argument.
-  // touch() may fail if process.title is not valid.
-  // Depends on setName() which has also been deprecated.
-  // This is a convenience method to extend the sudo session.
-  // This uses existing sudo-prompt machinery.
-  exec('echo touchingsudotimestamp', {},
-    function(error, stdout, stderr) {
-      if (error) return end(error);
-      end(); // Do not pass stdout and stderr back to callback.
-    }
-  );
-}
-
 function validName(string) {
   // We use 70 characters as a limit to side-step any issues with Unicode
   // normalization form causing a 255 character string to exceed the fs limit.
@@ -348,9 +323,3 @@ function versionReadICNS(options, end) {
 }
 
 module.exports.exec = exec;
-
-// DEPRECATED:
-module.exports.setName = setName;
-
-// DEPRECATED:
-module.exports.touch = touch;

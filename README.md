@@ -1,24 +1,24 @@
-# sudo-dialog
+## Cross-platform Node.js subprocess with administrative privileges
 
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background Node.js applications or native Electron apps that need sudo.
 
+`sudo-dialog` provides a native OS dialog prompt on **Windows** (UAC), on **OS X** and **Linux** with custom name and optional icon, `has no external dependencies and does not require any native bindings`.
 
-- `Windows` Use native "User Account Control" (UAC)
+`sudo-dialog` is based on [sudo-prompt](https://github.com/jorangreef/sudo-prompt), but fully cross-platform and more subprocess configurable.
 
-    <img style="width:330px" src="./win32/sample.png">
+- `Windows`, use native "User Account Control" (UAC)
 
-- `OS X`
+    <img width="330px" src="./win32/sample.png">
 
-    <img style="width:330px" src="./darwin/sample.png">
+- `OS X`, use bundled applet
 
-- `Linux` we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
+    <img width="330px" src="./darwin/sample.png">
 
-    <img src="./linux/sample1.png" style="width:330px">
-    <img src="./linux/sample2.png" style="width:330px">
+- `Linux`, we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
 
-`sudo-dialog` provides a native OS dialog prompt on **OS X** and **Linux (beta)** with custom name and optional icon.
+    <img src="./linux/sample1.png" width="330px">
 
-`sudo-dialog` has no external dependencies and does not require any native bindings.
+    <img src="./linux/sample2.png" width="330px">
 
 ## Installation
 ```
@@ -27,7 +27,7 @@ npm install sudo-dialog
 
 ## Usage
 Note: Your command should not start with the `sudo` prefix.
-```
+```js
 var sudo = require('sudo-dialog');
 var options = {
   name: 'Your application name',
@@ -49,7 +49,6 @@ sudo.exec('echo hello', options, function(error) {});
 
 `sudo-dialog` will use `process.title` as `options.name` if `options.name` is not provided. `options.name` must be alphanumeric only (spaces are supported) and at most 70 characters.
 
-*Please note that `sudo.setName()` and `sudo.touch()` have been deprecated to provide a completely functional interface to `exec()`. These calls will be removed in the next release of `sudo-dialog`.*
 
 ## Behavior
 - ```OS X```, `sudo-dialog` should behave just like the `sudo` command in the shell. If your command does not work with the `sudo` command in the shell (perhaps because it uses `>` redirection to a restricted file), then it will not work with `sudo-dialog`. However, it is still possible to use sudo-dialog to get a privileged shell.
