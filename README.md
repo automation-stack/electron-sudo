@@ -3,13 +3,18 @@
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background Node.js applications or native Electron apps that need sudo.
 
 
-<img src="./darwin/sample.png" width="40%">
-<img src="./win32/sample.png" width="40%">
+- `Windows` Use native "User Account Control" (UAC)
 
-On Linux we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
+    <img style="width:330px" src="./win32/sample.png">
 
-<img src="./linux/sample1.png" width="30%">
-<img src="./linux/sample2.png" width="30%">
+- `OS X`
+
+    <img style="width:330px" src="./darwin/sample.png">
+
+- `Linux` we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
+
+    <img src="./linux/sample1.png" style="width:330px">
+    <img src="./linux/sample2.png" style="width:330px">
 
 `sudo-dialog` provides a native OS dialog prompt on **OS X** and **Linux (beta)** with custom name and optional icon.
 
@@ -25,8 +30,19 @@ Note: Your command should not start with the `sudo` prefix.
 ```
 var sudo = require('sudo-dialog');
 var options = {
-  name: 'Ronomon',
-  icns: '/path/to/icns/file' // (optional)
+  name: 'Your application name',
+  icns: '/path/to/icns/file' // (optional, only for MacOS),
+  process: {
+    options: { // https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
+      env: {'VAR': 'VALUE'}
+    },
+    on: function(ps) {
+      ps.stdout.on('data', function(data) {});
+      setTimeout(function() {
+        ps.kill()
+      }.bind(ps), 50000);
+    }
+  }
 };
 sudo.exec('echo hello', options, function(error) {});
 ```
