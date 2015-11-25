@@ -33,8 +33,11 @@ var options = {
   name: 'Your application name',
   icns: '/path/to/icns/file' // (optional, only for MacOS),
   process: {
-    options: { // https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
+    options: {
+      // Can use custom environment variables for your privileged subprocess
       env: {'VAR': 'VALUE'}
+      // ... and all other subprocess options described here
+      // https://nodejs.org/api/child_process.html#child_process_child_process_exec_command_options_callback
     },
     on: function(ps) {
       ps.stdout.on('data', function(data) {});

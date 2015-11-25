@@ -12,11 +12,28 @@ function attempt(attempts, command, options, end) {
   if (typeof attempts !== 'number' || Math.floor(attempts) !== attempts || attempts < 0) {
     return end(new Error('Attempts argument should be a positive integer.'));
   }
+
+  if (options.process) {
+      var on = options.process.on;
+      var opts = options.process.options;
+  }
+  else {
+      var on = function() {};
+      var opts = {};
+  }
+  // Prepare subprocess environment variables (OSx, Linux)
+  var env = [];
+  if (opts.env && typeof opts.env == 'object') {
+    for (var key in opts.env) {
+      env.push(key.concat('=', opts.env[key]));
+    }
+  }
+  // Prepare sudo command for current platform
   switch (Node.process.platform) {
     // For Windows use VBS script for elevating rights, if user already has needed privileges
     // UAC password prompt not displayed
     case 'win32':
-      sudoCmd = [
+      var sudoCmd = [
           encloseDoubleQuotes(Node.path.join(
             Node.path.dirname(module.filename), Node.process.platform, 'sudo.cmd'
           )),
@@ -28,10 +45,12 @@ function attempt(attempts, command, options, end) {
     // display an error message and exit.
     case 'darwin':
     case 'linux':
-      sudoCmd = '/usr/bin/sudo -n '.concat(command);
+      var sudoCmd = ['/usr/bin/sudo -n', env.join(' '), command].join(' ');
       break
   }
-  Node.child.exec(sudoCmd, function(error, stdout, stderr) {
+
+  console.log('RUN EXEC on ' + env);
+  on(Node.child.exec(sudoCmd, opts, function(error, stdout, stderr) {
       if (/sudo: a password is required/i.test(stderr)) {
         if (attempts > 0) return end(new Error('User did not grant permission.'));
         if (Node.process.platform === 'linux') {
@@ -53,7 +72,7 @@ function attempt(attempts, command, options, end) {
         end(error, stdout, stderr);
       }
     }
-  );
+  ));
 }
 
 function copy(source, target, end) {
@@ -135,7 +154,6 @@ function exec() {
 function linux(command, options, end) {
   linuxBinary(
     function(error, binary) {
-      console.log(binary);
       if (error) { binary = Node.path.join(Node.process.platform, 'gksudo')};
       linuxExecute(binary, command, options, end);
     }
@@ -204,7 +222,6 @@ function macPrompt(hash, options, callback) {
   var temp = Node.os.tmpdir();
   if (!temp) return callback(new Error('Requires os.tmpdir() to be defined.'));
   if (!Node.process.env.USER) return callback(new Error('Requires env[\'USER\'] to be defined.'));
-  console.log(Node.path.join(Node.path.dirname(module.filename), Node.process.platform, 'applet.app'));
   var source = Node.path.join(Node.path.dirname(module.filename), Node.process.platform, 'applet.app');
   var target = Node.path.join(temp, hash, options.name + '.app');
   function end(error) {
