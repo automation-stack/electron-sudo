@@ -136,7 +136,7 @@ function linux(command, options, end) {
   linuxBinary(
     function(error, binary) {
       console.log(binary);
-      if (error) { binary = Node.path.join(Node.process.platform, 'gksu')};
+      if (error) { binary = Node.path.join(Node.process.platform, 'gksudo')};
       linuxExecute(binary, command, options, end);
     }
   );
