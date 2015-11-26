@@ -49,7 +49,6 @@ function attempt(attempts, command, options, end) {
       break
   }
 
-  console.log('RUN EXEC on ' + env);
   on(Node.child.exec(sudoCmd, opts, function(error, stdout, stderr) {
       if (/sudo: a password is required/i.test(stderr)) {
         if (attempts > 0) return end(new Error('User did not grant permission.'));
