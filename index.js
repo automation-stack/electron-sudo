@@ -13,21 +13,25 @@ function attempt(attempts, command, options, end) {
     return end(new Error('Attempts argument should be a positive integer.'));
   }
 
+  var processOptions = {}
+  var env = []
+  var on = function() {};
+
   if (options.process) {
-      var on = options.process.on;
-      var opts = options.process.options;
+      if (options.process.on && typeof options.process.on == 'function') {
+        on = options.process.on;
+      }
+      var processOptions = options.process.options || {};
+      // Prepare subprocess environment variables (OSx, Linux) if required
+      if (processOptions) {
+        if (processOptions.env && typeof processOptions.env == 'object') {
+          for (var key in processOptions.env) {
+            env.push(key.concat('=', processOptions.env[key]));
+          }
+        }
+      }
   }
-  else {
-      var on = function() {};
-      var opts = {};
-  }
-  // Prepare subprocess environment variables (OSx, Linux)
-  var env = [];
-  if (opts.env && typeof opts.env == 'object') {
-    for (var key in opts.env) {
-      env.push(key.concat('=', opts.env[key]));
-    }
-  }
+
   // Prepare sudo command for current platform
   switch (Node.process.platform) {
     // For Windows use VBS script for elevating rights, if user already has needed privileges
@@ -49,7 +53,7 @@ function attempt(attempts, command, options, end) {
       break
   }
 
-  on(Node.child.exec(sudoCmd, opts, function(error, stdout, stderr) {
+  on(Node.child.exec(sudoCmd, processOptions, function(error, stdout, stderr) {
       if (/sudo: a password is required/i.test(stderr)) {
         if (attempts > 0) return end(new Error('User did not grant permission.'));
         if (Node.process.platform === 'linux') {
