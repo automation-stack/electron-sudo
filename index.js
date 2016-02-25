@@ -49,7 +49,7 @@ function attempt(attempts, command, options, end) {
     // display an error message and exit.
     case 'darwin':
     case 'linux':
-      var sudoCmd = ['/usr/bin/sudo -n', env.join(' '), command].join(' ');
+      var sudoCmd = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' ');
       break
   }
 
