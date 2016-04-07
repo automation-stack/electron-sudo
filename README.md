@@ -1,5 +1,3 @@
-[![Gitter](https://badges.gitter.im/automation-stack/electron-sudo.svg)](https://gitter.im/automation-stack/electron-sudo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-
 ## Electron subprocess with administrative privileges
 
 [![Join the chat at https://gitter.im/automation-stack/electron-sudo](https://badges.gitter.im/automation-stack/electron-sudo.svg)](https://gitter.im/automation-stack/electron-sudo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
