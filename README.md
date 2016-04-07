@@ -1,3 +1,5 @@
+[![Gitter](https://badges.gitter.im/automation-stack/electron-sudo.svg)](https://gitter.im/automation-stack/electron-sudo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 ## Electron subprocess with administrative privileges
 
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background subprocesse which run native Electron apps that need sudo.
