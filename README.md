@@ -1,5 +1,7 @@
 ## Electron subprocess with administrative privileges
 
+[![Join the chat at https://gitter.im/automation-stack/electron-sudo](https://badges.gitter.im/automation-stack/electron-sudo.svg)](https://gitter.im/automation-stack/electron-sudo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background subprocesse which run native Electron apps that need sudo.
 
 `electron-sudo` provides a native OS dialog prompt on **Windows** (UAC), on **OS X** and **Linux** with custom name and optional icon, `has no external dependencies and does not require any native bindings`.
