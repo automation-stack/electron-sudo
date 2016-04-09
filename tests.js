@@ -1,3 +1,4 @@
+var os = require('os');
 var fs = require('fs');
 var sudo = require('./');
 var exec = require('child_process').exec;
@@ -28,6 +29,7 @@ kill(
         console.log('stderr: ' + JSON.stringify(stderr));
         kill(
           function() {
+            var crlf = os.platfrom == 'win32' ? '\r\n' : '\n';
             if (error) throw error;
             if (stdout !== 'hello\r\n') throw new Error('stdout != "hello\r\n"');
             if (stderr !== "") throw new Error('stderr != ""');

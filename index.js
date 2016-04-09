@@ -15,11 +15,13 @@ function writeTempBatchFile(command) {
   var tmpBatchFile = tmpDir + '\\batch-' + Math.random() + '.bat';
   var tmpOutputFile = tmpDir + '\\output-' + Math.random();
   Node.fs.writeFileSync(tmpBatchFile, command + '> ' + tmpOutputFile);
-  Node.fs.writeFileSync(tmpOutputFile);
+  Node.fs.writeFileSync(tmpOutputFile, '');
   return {batch: tmpBatchFile, output: tmpOutputFile};
 }
 
 function watchBatchOutput(files, cp) {
+  var output = Node.fs.readFileSync(files.output);
+  cp.stdout.emit('data', output);
   var watcher = Node.fs.watchFile(
     files.output, {persistent: true, interval: 1},
     function() {
@@ -35,6 +37,7 @@ function watchBatchOutput(files, cp) {
         });
     }
   );
+  watcher.last = output.length;
   watcher.last = 0;
   cp.on('exit', function() {
     Node.fs.unwatchFile(files.output);
@@ -118,7 +121,6 @@ function attempt(attempts, command, options, end) {
     } else if (!error && /^sudo:/i.test(stderr)) {
       end(new Error('Unexpected stderr from sudo command without corresponding error: ' + stderr));
     } else {
-      //console.log(cp.stdout.output);
       end(error, stdout, stderr);
     }
   }
