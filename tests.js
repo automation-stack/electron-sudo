@@ -29,7 +29,7 @@ kill(
         kill(
           function() {
             if (error) throw error;
-            if (stdout !== 'hello\n') throw new Error('stdout != "hello\n"');
+            if (stdout !== 'hello\r\n') throw new Error('stdout != "hello\r\n"');
             if (stderr !== "") throw new Error('stderr != ""');
             console.log('OK');
           }

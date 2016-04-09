@@ -8,6 +8,49 @@ var Node = {
   util: require('util')
 };
 
+function writeTempBatchFile(command) {
+  var tmpDir = Node.child.execSync('echo %temp%')
+    .toString()
+    .replace(/\r\n$/, '');
+  var tmpBatchFile = tmpDir + '\\batch-' + Math.random() + '.bat';
+  var tmpOutputFile = tmpDir + '\\output-' + Math.random();
+  Node.fs.writeFileSync(tmpBatchFile, command + '> ' + tmpOutputFile);
+  Node.fs.writeFileSync(tmpOutputFile);
+  return {batch: tmpBatchFile, output: tmpOutputFile};
+}
+
+function watchBatchOutput(files, cp) {
+  var watcher = Node.fs.watchFile(
+    files.output, {persistent: true, interval: 1},
+    function() {
+        var stream = Node.fs.createReadStream(
+          files.output, {start: watcher.last}),
+          size = 0;
+        stream.on('data', function(data) {
+            size += data.length;
+            cp.stdout.emit('data', data);
+        });
+        stream.on('close', function() {
+            watcher.last += size;
+        });
+    }
+  );
+  watcher.last = 0;
+  cp.on('exit', function() {
+    Node.fs.unwatchFile(files.output);
+    Node.fs.unlink(files.batch);
+    Node.fs.unlink(files.output);
+  });
+}
+
+function child(sudoCmd, processOptions, cb) {
+  var cp = Node.child.exec(sudoCmd, processOptions, cb);
+  if (Node.process.platform == 'win32') {
+    watchBatchOutput(processOptions.tmpFiles, cp);
+  }
+  return cp;
+}
+
 function attempt(attempts, command, options, end) {
   if (typeof attempts !== 'number' || Math.floor(attempts) !== attempts || attempts < 0) {
     return end(new Error('Attempts argument should be a positive integer.'));
@@ -37,11 +80,15 @@ function attempt(attempts, command, options, end) {
     // For Windows use VBS script for elevating rights, if user already has needed privileges
     // UAC password prompt not displayed
     case 'win32':
+      processOptions.tmpFiles = writeTempBatchFile(command);
       var sudoCmd = [
-          encloseDoubleQuotes(Node.path.join(
-            Node.path.dirname(module.filename), Node.process.platform, 'sudo.cmd'
-          )),
-          encloseDoubleQuotes(command)
+          Node.path.join(
+            Node.path.dirname(module.filename),
+            Node.process.platform,
+            'elevate.exe'
+          ),
+          '-wait',
+          processOptions.tmpFiles.batch
         ].join(' ');
       break
     // For OSx and Linux the -n (non-interactive) option prevents sudo from prompting the user for
@@ -52,30 +99,30 @@ function attempt(attempts, command, options, end) {
       var sudoCmd = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' ');
       break
   }
-
-  on(Node.child.exec(sudoCmd, processOptions, function(error, stdout, stderr) {
-      if (/sudo: a password is required/i.test(stderr)) {
-        if (attempts > 0) return end(new Error('User did not grant permission.'));
-        if (Node.process.platform === 'linux') {
-          // Linux will probably use TTY tickets for sudo timestamps.
-          // If so, we cannot easily extend the sudo timestamp for the user.
-          // We prefer this since a single prompt can be used for multiple calls.
-          // Instead, we have to use a separate prompt for each call.
-          return linux(command, options, end);
-        }
-        prompt(options,
-          function(error) {
-            if (error) return end(error);
-            attempt(++attempts, command, options, end); // Cannot use ++ suffix here.
-          }
-        );
-      } else if (!error && /^sudo:/i.test(stderr)) {
-        end(new Error('Unexpected stderr from sudo command without corresponding error: ' + stderr));
-      } else {
-        end(error, stdout, stderr);
+  var cb = function(error, stdout, stderr) {
+    if (/sudo: a password is required/i.test(stderr)) {
+      if (attempts > 0) return end(new Error('User did not grant permission.'));
+      if (Node.process.platform === 'linux') {
+        // Linux will probably use TTY tickets for sudo timestamps.
+        // If so, we cannot easily extend the sudo timestamp for the user.
+        // We prefer this since a single prompt can be used for multiple calls.
+        // Instead, we have to use a separate prompt for each call.
+        return linux(command, options, end);
       }
+      prompt(options,
+        function(error) {
+          if (error) return end(error);
+          attempt(++attempts, command, options, end); // Cannot use ++ suffix here.
+        }
+      );
+    } else if (!error && /^sudo:/i.test(stderr)) {
+      end(new Error('Unexpected stderr from sudo command without corresponding error: ' + stderr));
+    } else {
+      //console.log(cp.stdout.output);
+      end(error, stdout, stderr);
     }
-  ));
+  }
+  on(child(sudoCmd, processOptions, cb));
 }
 
 function copy(source, target, end) {
