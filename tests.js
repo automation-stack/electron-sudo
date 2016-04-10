@@ -29,9 +29,9 @@ kill(
         console.log('stderr: ' + JSON.stringify(stderr));
         kill(
           function() {
-            var crlf = os.platfrom == 'win32' ? '\r\n' : '\n';
+            var crlf = os.platform() == 'win32' ? '\r\n' : '\n';
             if (error) throw error;
-            if (stdout !== 'hello\r\n') throw new Error('stdout != "hello\r\n"');
+            if (stdout !== ('hello' + crlf)) throw new Error('stdout != "hello' + crlf + '"');
             if (stderr !== "") throw new Error('stderr != ""');
             console.log('OK');
           }
