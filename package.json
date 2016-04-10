@@ -1,6 +1,6 @@
 {
   "name": "electron-sudo",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Electron subprocess with administrative privileges, prompting the user with an OS dialog if necessary.",
   "main": "index.js",
   "repository": {
@@ -17,7 +17,9 @@
     "ui"
   ],
   "author": "Aleksandr Komlev",
-  "contributor": ["Joran Dirk Gree"],
+  "contributor": [
+    "Joran Dirk Gree"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/automation-stack/electron-sudo/issues"
