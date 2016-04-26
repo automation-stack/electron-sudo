@@ -85,11 +85,11 @@ function attempt(attempts, command, options, end) {
     case 'win32':
       processOptions.tmpFiles = writeTempBatchFile(command);
       var sudoCmd = [
-          Node.path.join(
+          encloseDoubleQuotes(Node.path.join(
             Node.path.dirname(module.filename),
             Node.process.platform,
             'elevate.exe'
-          ),
+          )),
           '-wait',
           processOptions.tmpFiles.batch
         ].join(' ');
