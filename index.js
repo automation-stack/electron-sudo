@@ -8,12 +8,15 @@ var Node = {
   util: require('util')
 };
 
-function writeTempBatchFile(command) {
+function writeTempBatchFile(command, env) {
   var tmpDir = Node.child.execSync('echo %temp%')
     .toString()
     .replace(/\r\n$/, '');
   var tmpBatchFile = tmpDir + '\\batch-' + Math.random() + '.bat';
   var tmpOutputFile = tmpDir + '\\output-' + Math.random();
+  if (env && env.length) {
+    command = 'set ' + env.join(' && set ') + ' && ' + command;
+  }
   Node.fs.writeFileSync(tmpBatchFile, command + '> ' + tmpOutputFile);
   Node.fs.writeFileSync(tmpOutputFile, '');
   return {batch: tmpBatchFile, output: tmpOutputFile};
@@ -83,13 +86,13 @@ function attempt(attempts, command, options, end) {
     // For Windows use VBS script for elevating rights, if user already has needed privileges
     // UAC password prompt not displayed
     case 'win32':
-      processOptions.tmpFiles = writeTempBatchFile(command);
+      processOptions.tmpFiles = writeTempBatchFile(command, env);
       var sudoCmd = [
-          Node.path.join(
+          encloseDoubleQuotes(Node.path.join(
             Node.path.dirname(module.filename),
             Node.process.platform,
             'elevate.exe'
-          ),
+          )),
           '-wait',
           processOptions.tmpFiles.batch
         ].join(' ');
