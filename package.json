@@ -14,7 +14,13 @@
     "prompt",
     "command",
     "exec",
-    "ui"
+    "ui",
+    "electron",
+    "elevate",
+    "administrative",
+    "privileges",
+    "UAC",
+    "subprocess"
   ],
   "author": "Aleksandr Komlev",
   "contributor": [
