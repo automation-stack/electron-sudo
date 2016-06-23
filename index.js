@@ -106,7 +106,7 @@ function attempt(attempts, command, options, end) {
       break
   }
   var cb = function(error, stdout, stderr) {
-    if (/sudo: a password is required/i.test(stderr)) {
+    if (error && /^sudo:/i.test(stderr)) {
       if (attempts > 0) return end(new Error('User did not grant permission.'));
       if (Node.process.platform === 'linux') {
         // Linux will probably use TTY tickets for sudo timestamps.
