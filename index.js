@@ -255,7 +255,7 @@ function linuxExecute(binary, command, options, end) {
   Node.child.exec(string,
     function(error, stdout, stderr) {
       if (error && /Request dismissed|Command failed/i.test(error)) {
-        error = new Error('User did not grant permission.');
+        error = new Error(error.message || error);
       }
       end(error, stdout, stderr);
     }
