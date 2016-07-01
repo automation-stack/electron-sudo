@@ -22,6 +22,14 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 
     <img src="./linux/sample2.png" width="330px">
 
+## Platform-specific sources
+
+- [Applet [OSx]](https://github.com/automation-stack/electron-sudo/tree/master/darwin/applet.app/Contents)
+- [Elevate.exe sources [Win32/64]](https://github.com/automation-stack/electron-sudo/tree/master/win32/src)
+- [GKsu sources [Linux]](https://github.com/automation-stack/electron-sudo/tree/master/linux)
+
+If you don't trust binaries bundled in NPM package you can manually build tools and use them instead.
+
 ## Installation
 ```
 npm install electron-sudo
