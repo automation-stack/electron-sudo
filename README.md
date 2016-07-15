@@ -62,6 +62,31 @@ sudo.exec('echo hello', options, function(error) {});
 
 `electron-sudo` will use `process.title` as `options.name` if `options.name` is not provided. `options.name` must be alphanumeric only (spaces are supported) and at most 70 characters.
 
+## Usage with Webpack
+
+Webpack config should contain ```__dirname``` equals ```true``` for work properly
+
+```js
+
+let nodeModules = fs.readdirSync('./node_modules')
+    .filter((module) => {
+        return module !== '.bin';
+    })
+    .reduce((prev, module) => {
+        return Object.assign(prev, {[module]: 'commonjs ' + module});
+    }, {});
+
+export default {
+    ...
+    target: 'electron',
+    node: {
+        /* http://webpack.github.io/docs/configuration.html#node */
+        __dirname: true
+    },
+    externals: nodeModules
+};
+```
+
 
 ## Behavior
 - ```OS X```, `electron-sudo` should behave just like the `sudo` command in the shell. If your command does not work with the `sudo` command in the shell (perhaps because it uses `>` redirection to a restricted file), then it will not work with `electron-sudo`. However, it is still possible to use electron-sudo to get a privileged shell.
