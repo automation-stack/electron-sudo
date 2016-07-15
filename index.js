@@ -89,7 +89,7 @@ function attempt(attempts, command, options, end) {
       processOptions.tmpFiles = writeTempBatchFile(command, env);
       var sudoCmd = [
           encloseDoubleQuotes(Node.path.join(
-            Node.path.dirname(module.filename),
+            __dirname,
             Node.process.platform,
             'elevate.exe'
           )),
@@ -277,7 +277,7 @@ function macPrompt(hash, options, callback) {
   var temp = Node.os.tmpdir();
   if (!temp) return callback(new Error('Requires os.tmpdir() to be defined.'));
   if (!Node.process.env.USER) return callback(new Error('Requires env[\'USER\'] to be defined.'));
-  var source = Node.path.join(Node.path.dirname(module.filename), Node.process.platform, 'applet.app');
+  var source = Node.path.join(__dirname, Node.process.platform, 'applet.app');
   var target = Node.path.join(temp, hash, options.name + '.app');
   function end(error) {
     remove(Node.path.dirname(target),
