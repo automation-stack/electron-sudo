@@ -39,7 +39,7 @@ class Sudoer {
 
 class SudoerUnix extends Sudoer {
 
-    constructor(options) {
+    constructor(options={}) {
         super(options);
     }
 
@@ -87,6 +87,11 @@ class SudoerUnix extends Sudoer {
             }
         });
     }
+
+    async resetCache() {
+        await exec('/usr/bin/sudo -k');
+        return;
+    }
 }
 
 
@@ -126,7 +131,7 @@ class SudoerDarwin extends SudoerUnix {
         return this.hash;
     }
 
-    async exec(command, options) {
+    async exec(command, options={}) {
 
         return new Promise(async (resolve, reject) => {
             let self = this,
@@ -169,7 +174,7 @@ class SudoerDarwin extends SudoerUnix {
                 let intvl = setInterval(() => {
                     if (!self.up) {
                         clearInterval(intvl);
-                        return resolve();
+                        return resolve(null);
                     }
                 }, 1);
                 return;
@@ -217,7 +222,8 @@ class SudoerDarwin extends SudoerUnix {
                 return reject(err);
             }
             this.up = false;
-            resolve();
+            this.hash = null;
+            return resolve(hash);
         });
     }
 

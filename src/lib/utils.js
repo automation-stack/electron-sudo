@@ -22,7 +22,7 @@ async function readFile(file) {
     });
 }
 
-async function execFile(cmd, options) {
+async function execFile(cmd, options={}) {
 
     return new Promise((resolve, reject) => {
         __execFile(cmd, options || {}, (err, stdout, stderr) => {
@@ -32,7 +32,7 @@ async function execFile(cmd, options) {
     });
 }
 
-async function exec(cmd, options) {
+async function exec(cmd, options={}) {
 
     return new Promise((resolve, reject) => {
         __exec(cmd, options || {}, (err, stdout, stderr) => {
@@ -42,7 +42,7 @@ async function exec(cmd, options) {
     });
 }
 
-async function spawn(cmd, args, options) {
+async function spawn(cmd, args, options={}) {
 
     return new Promise((resolve, reject) => {
         let cp = __spawn(cmd, args, options || {});
