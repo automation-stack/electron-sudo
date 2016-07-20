@@ -19,8 +19,9 @@ describe(`electron-sudo :: ${platform}`, function () {
     if (platform === 'darwin') {
         describe('OSx prompt with queuing (only single instance)', async function () {
             it('should prompt single dialog and execute all asyncronously', async function () {
+
                 // Reset password cache
-                await sudoer.resetCache();
+                await sudoer.reset();
                 let first;
                 sudoer.prompt().then((hash) => {
                     first = hash;
@@ -30,14 +31,36 @@ describe(`electron-sudo :: ${platform}`, function () {
                 expect(second).to.be.a.null();
             });
         });
+        describe('exec with ENV params', async function () {
+            it('should available environment variables', async function () {
+                try {
+                    let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                } catch (err) {
+                    this.skip();
+                }
+                expect(result.stdout.trim()).to.be.equals('VALUE');
+            });
+        });
     }
 
-    describe('exec with ENV params', async function () {
-        it('should available environment variables', async function () {
-            let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
-            expect(result.stdout.trim()).to.be.equals('VALUE');
+    if (platform === 'linux') {
+        describe('[gksudo] exec with ENV params', async function () {
+            it('should available environment variables', async function () {
+                sudoer.binary = './dist/bin/gksudo';
+                let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                expect(result.stdout.trim()).to.be.equals('VALUE');
+            });
         });
-    });
+        describe('[pkexec] exec with ENV params', async function () {
+            it('should available environment variables', async function () {
+                sudoer.binary = '/usr/bin/pkexec';
+                sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                expect(result.stdout.trim()).to.be.equals('VALUE');
+            });
+        });
+    }
 
 
 });

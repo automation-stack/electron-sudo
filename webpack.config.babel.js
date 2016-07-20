@@ -1,7 +1,7 @@
 import fs from 'fs';
 import webpack from 'webpack';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
-
+import ShellPlugin from 'webpack-shell-plugin';
 
 let nodeModules = fs.readdirSync('./node_modules')
     .filter((module) => {
@@ -43,7 +43,14 @@ export default {
         new webpack.IgnorePlugin(/node_modules/),
         new CopyWebpackPlugin([
             {from: `${srcPath}/bin`, to: './bin'}
-        ])
+        ]),
+        new ShellPlugin({
+            onBuildExit: [
+                `chmod +x ${distPath}/bin/applet.app`,
+                `chmod +x ${distPath}/bin/applet.app/Contents/MacOS/applet`,
+                `chmod +x ${distPath}/bin/gksudo`
+            ]
+        })
     ],
     node: {
         //do not include polyfills...

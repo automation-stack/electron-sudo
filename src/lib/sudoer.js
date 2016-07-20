@@ -28,17 +28,7 @@ class SudoerUnix extends Sudoer {
 
     constructor(options={}) {
         super(options);
-    }
-
-    prepareEnv(options) {
-        let {env} = options,
-            spreaded = [];
-        if (env && typeof env == 'object') {
-            for (let key in env) {
-                spreaded.push(key.concat('=', env[key]));
-            }
-        }
-        return spreaded;
+        if (!this.options.name) { this.options.name = 'Electron'; }
     }
 
     async copy(source, target) {
@@ -88,7 +78,7 @@ class SudoerUnix extends Sudoer {
         }
     }
 
-    async resetCache() {
+    async reset() {
         await exec('/usr/bin/sudo -k');
     }
 }
@@ -100,9 +90,6 @@ class SudoerDarwin extends SudoerUnix {
         super(options);
         let self = this;
         // Validate options
-        if (!options.name || typeof options.name !== 'string' || !self.isValidName(options.name)) {
-            return new Error('options.name must be provided and alphanumeric only (spaces are allowed).');
-        }
         if (options.icns && typeof options.icns !== 'string') {
             throw new Error('options.icns must be a string if provided.');
         } else if (options.icns && options.icns.trim().length === 0) {
@@ -128,21 +115,32 @@ class SudoerDarwin extends SudoerUnix {
         return this.hash;
     }
 
+    prepareEnv(options) {
+        let {env} = options,
+            spreaded = [];
+        if (env && typeof env == 'object') {
+            for (let key in env) {
+                spreaded.push(key.concat('=', env[key]));
+            }
+        }
+        return spreaded;
+    }
+
     async exec(command, options={}) {
         return new Promise(async (resolve, reject) => {
             let self = this,
                 env = self.prepareEnv(options),
-                cmd = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
+                sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
                 result;
             try {
-                result = await exec(cmd, options);
+                result = await exec(sudoCommand, options);
                 resolve(result);
             } catch (err) {
                 try {
                     // Prompt password
                     await self.prompt();
                     // Try once more
-                    result = await exec(cmd, options);
+                    result = await exec(sudoCommand, options);
                     resolve(result);
                 } catch (err) {
                     reject(err);
@@ -276,15 +274,59 @@ class SudoerLinux extends SudoerUnix {
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
-            '/usr/bin/kdesudo',
             './src/bin/gksudo'
         ];
     }
 
+    prepareEnv(options) {
+        let {env} = options,
+            spreaded = [];
+        if (env && typeof env == 'object') {
+            for (let key in env) {
+                spreaded.push(key.concat('=', env[key]));
+            }
+        }
+        return spreaded;
+    }
+
     async getBinary() {
-        this.paths.some(async () => {
-            let r = await stat('/usr/bin/sudo');
-            console.log(r);
+        return Promise.all(
+            this.paths.map(async (path) => {
+                try {
+                    await stat(path);
+                    return path;
+                } catch (err) {
+                    return null;
+                }
+        }));
+    }
+
+    async exec(command, options={}) {
+        return new Promise(async (resolve, reject) => {
+            let self = this,
+                result;
+            // Detect utility for sudo mode
+            if (!self.binary) {
+                self.binary = (await self.getBinary()).filter(v => v)[0];
+            }
+            if (options.env instanceof Object && !options.env.DISPLAY) {
+                // Force DISPLAY variable with default value which is required for UI dialog
+                options.env = Object.assign(options.env, {DISPLAY: ':0'});
+            }
+            let sudo = `"${this.escapeDoubleQuotes(self.binary)}" `;
+            if (/gksudo/i.test(self.binary)) {
+                sudo += `-d --preserve-env --sudo-mode ` +
+                    `--description="${self.escapeDoubleQuotes(self.options.name)}" `;
+            } else if (/pkexec/i.test(self.binary)) {
+                sudo += '--disable-internal-agent ';
+            }
+            let sudoCommand = `${sudo} ${command}`;
+            try {
+                result = await exec(sudoCommand, options);
+                return resolve(result);
+            } catch (err) {
+                return reject(err);
+            }
         });
     }
 }

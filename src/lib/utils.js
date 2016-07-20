@@ -27,7 +27,7 @@ async function execFile(cmd, options={}) {
 
 async function exec(cmd, options={}) {
     return new Promise((resolve, reject) => {
-        child.exec(cmd, options || {}, (err, stdout, stderr) => {
+        child.exec(cmd, options, (err, stdout, stderr) => {
             if (err) { return reject(err); }
             return resolve({stdout, stderr});
         });
