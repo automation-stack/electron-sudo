@@ -121,8 +121,6 @@ function attempt(attempts, command, options, end) {
           attempt(++attempts, command, options, end); // Cannot use ++ suffix here.
         }
       );
-    } else if (!error && /^sudo:/i.test(stderr)) {
-      end(new Error('Unexpected stderr from sudo command without corresponding error: ' + stderr));
     } else {
       end(error, stdout, stderr);
     }
