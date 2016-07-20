@@ -32,7 +32,7 @@
     "build": "WEBPACK=node_modules/webpack/bin/webpack.js && $WEBPACK --config webpack.config.babel.js",
     "prepublish": "npm run test",
     "lint": "node_modules/eslint/bin/eslint.js -c .eslintrc ./src",
-    "test": "node_modules/mocha/bin/mocha --compilers js:babel-core/register ./tests"
+    "test": "npm run build && node_modules/mocha/bin/mocha --compilers js:babel-core/register ./tests"
   },
   "devDependencies": {
     "babel-cli": "^6.10.1",
