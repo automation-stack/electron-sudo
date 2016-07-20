@@ -24,9 +24,9 @@ describe(`electron-sudo :: ${platform}`, function () {
                 let first;
                 sudoer.prompt().then((hash) => {
                     first = hash;
+                    expect(first).to.have.lengthOf(32);
                 });
                 let second = await sudoer.prompt();
-                expect(first).to.have.lengthOf(32);
                 expect(second).to.be.a.null();
             });
         });

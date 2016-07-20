@@ -2,7 +2,7 @@ import {tmpdir} from 'os';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {execFile, readFile, exec, mkdir} from '~/lib/utils';
+import {execFile, readFile, exec, mkdir, stat} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -21,19 +21,6 @@ class Sudoer {
     encloseDoubleQuotes(string) {
         return string.replace(/(.+)/g, '"$1"');
     }
-
-    acquire() {
-        return;
-    }
-
-    kill(pid) {
-        if (!pid) {
-            return;
-        } else {
-            return;
-        }
-    }
-
 }
 
 
@@ -44,7 +31,6 @@ class SudoerUnix extends Sudoer {
     }
 
     prepareEnv(options) {
-
         let {env} = options,
             spreaded = [];
         if (env && typeof env == 'object') {
@@ -56,7 +42,6 @@ class SudoerUnix extends Sudoer {
     }
 
     async copy(source, target) {
-
         return new Promise(async (resolve, reject) => {
             source = this.escapeDoubleQuotes(normalize(source));
             target = this.escapeDoubleQuotes(normalize(target));
@@ -71,7 +56,6 @@ class SudoerUnix extends Sudoer {
     }
 
     async remove(target) {
-
         let self = this;
         return new Promise(async (resolve, reject) => {
             if (!target.startsWith(self.tmpdir)) {
@@ -88,9 +72,24 @@ class SudoerUnix extends Sudoer {
         });
     }
 
+    async acquire() {
+        // Acquire elevated rigths and hold it to prevent repeated prompting
+        await exec('echo');
+        setInterval(async () => {
+            await exec('echo');
+        }, 1000);
+    }
+
+    kill(pid) {
+        if (!pid) {
+            return;
+        } else {
+            return;
+        }
+    }
+
     async resetCache() {
         await exec('/usr/bin/sudo -k');
-        return;
     }
 }
 
@@ -98,7 +97,6 @@ class SudoerUnix extends Sudoer {
 class SudoerDarwin extends SudoerUnix {
 
     constructor(options={}) {
-
         super(options);
         let self = this;
         // Validate options
@@ -122,7 +120,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     getHash(buffer) {
-
         let hash = createHash('sha256');
         hash.update('electron-sudo');
         hash.update(this.options.name);
@@ -132,7 +129,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async exec(command, options={}) {
-
         return new Promise(async (resolve, reject) => {
             let self = this,
                 env = self.prepareEnv(options),
@@ -142,10 +138,10 @@ class SudoerDarwin extends SudoerUnix {
                 result = await exec(cmd, options);
                 resolve(result);
             } catch (err) {
-                // Prompt password
-                await self.prompt();
-                // Try once more
                 try {
+                    // Prompt password
+                    await self.prompt();
+                    // Try once more
                     result = await exec(cmd, options);
                     resolve(result);
                 } catch (err) {
@@ -156,7 +152,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async prompt() {
-
         let self = this;
         return new Promise(async (resolve, reject) => {
             if (!self.tmpdir) {
@@ -193,30 +188,15 @@ class SudoerDarwin extends SudoerUnix {
                 if (err.code !== 'EEXIST') { return reject(err); }
             }
             try {
+                // Copy application to temporary directory
                 await self.copy(source, target);
-            } catch (err) {
-                return reject(err);
-            }
-            // Create application icon from source
-            try {
+                // Create application icon from source
                 await self.icon(target);
-            } catch (err) {
-                return reject(err);
-            }
-            // Create property list for application
-            try {
+                // Create property list for application
                 await self.propertyList(target);
-            } catch (err) {
-                return reject(err);
-            }
-            // Open UI dialog with password prompt
-            try {
+                // Open UI dialog with password prompt
                 await self.open(target);
-            } catch (err) {
-                return reject(err);
-            }
-            // Remove applet from temporary directory
-            try {
+                // Remove applet from temporary directory
                 await self.remove(target);
             } catch (err) {
                 return reject(err);
@@ -228,7 +208,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async icon(target) {
-
         let self = this;
         return new Promise(async (resolve, reject) => {
             if (!this.options.icns) { return resolve(); }
@@ -241,7 +220,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async open(target) {
-
         let self = this;
         return new Promise(async (resolve, reject) => {
             target = self.escapeDoubleQuotes(normalize(target));
@@ -255,7 +233,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async readIcns(icnsPath) {
-
         return new Promise(async (resolve, reject) => {
             // ICNS is supported only on Mac.
             if (!icnsPath || platform !== 'darwin') {
@@ -294,6 +271,21 @@ class SudoerLinux extends SudoerUnix {
 
     constructor(options={}) {
         super(options);
+        this.bin = null;
+        // We prefer gksudo over pkexec since it gives a nicer prompt:
+        this.paths = [
+            '/usr/bin/gksudo',
+            '/usr/bin/pkexec',
+            '/usr/bin/kdesudo',
+            './src/bin/gksudo'
+        ];
+    }
+
+    async getBinary() {
+        this.paths.some(async () => {
+            let r = await stat('/usr/bin/sudo');
+            console.log(r);
+        });
     }
 }
 

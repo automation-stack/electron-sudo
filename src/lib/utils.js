@@ -1,31 +1,24 @@
-import {readFile as __readFile, mkdir as __mkdir} from 'fs';
-import {execFile as __execFile, exec as __exec, spawn as __spawn} from 'child_process';
+import fs from 'fs';
+import child from 'child_process';
 
 
-async function mkdir(path) {
-
-    return new Promise((resolve, reject) => {
-        __mkdir(path, (err) => {
-            if (err) { return reject(err); }
-            return resolve();
+function promisify(fn) {
+    return function() {
+        return new Promise((resolve, reject) => {
+            fn(...arguments, function () {
+                if (arguments[0] instanceof Error) {
+                    reject(arguments[0]);
+                } else {
+                    resolve(...Array.prototype.slice.call(arguments, 1));
+                }
+            });
         });
-    });
-}
-
-async function readFile(file) {
-
-    return new Promise((resolve, reject) => {
-        __readFile(file, (err, data) => {
-            if (err) { return reject(err); }
-            return resolve(data);
-        });
-    });
+    };
 }
 
 async function execFile(cmd, options={}) {
-
     return new Promise((resolve, reject) => {
-        __execFile(cmd, options || {}, (err, stdout, stderr) => {
+        child.execFile(cmd, options || {}, (err, stdout, stderr) => {
             if (err) { return reject(err); }
             return resolve({stdout, stderr});
         });
@@ -33,9 +26,8 @@ async function execFile(cmd, options={}) {
 }
 
 async function exec(cmd, options={}) {
-
     return new Promise((resolve, reject) => {
-        __exec(cmd, options || {}, (err, stdout, stderr) => {
+        child.exec(cmd, options || {}, (err, stdout, stderr) => {
             if (err) { return reject(err); }
             return resolve({stdout, stderr});
         });
@@ -43,9 +35,8 @@ async function exec(cmd, options={}) {
 }
 
 async function spawn(cmd, args, options={}) {
-
     return new Promise((resolve, reject) => {
-        let cp = __spawn(cmd, args, options || {});
+        let cp = child.spawn(cmd, args, options || {});
         cp.output = { stdout: new Buffer(0), stderr: new Buffer(0) };
         cp.stdout.on('data', (data) => {
             cp.output.stdout = concat(data, cp.output.stdout);
@@ -59,7 +50,6 @@ async function spawn(cmd, args, options={}) {
 }
 
 function concat(source, target) {
-
     if (!(source instanceof Buffer)) {
         source = new Buffer(source, 'utf8');
     }
@@ -69,5 +59,9 @@ function concat(source, target) {
     return Buffer.concat([target, source]);
 }
 
+let stat = promisify(fs.stat),
+    mkdir = promisify(fs.mkdir),
+    readFile = promisify(fs.readFile);
 
-export {readFile, execFile, spawn, exec, mkdir};
+
+export {readFile, execFile, spawn, exec, mkdir, stat};
