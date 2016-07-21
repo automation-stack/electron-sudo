@@ -1,8 +1,9 @@
 import {tmpdir} from 'os';
+import {watchFile, unwatchFile, unlink, createReadStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {execFile, readFile, exec, mkdir, stat} from '~/lib/utils';
+import {execFile, readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -12,6 +13,7 @@ class Sudoer {
     constructor(options) {
         this.platform = platform;
         this.options = options;
+        this.cp = null;
     }
 
     escapeDoubleQuotes(string) {
@@ -63,6 +65,9 @@ class SudoerUnix extends Sudoer {
     }
 
     async acquire() {
+        if (platform === 'linux') {
+            throw new Error(`Acquiring privileges not supported on "${platform}"`);
+        }
         // Acquire elevated rigths and hold it to prevent repeated prompting
         await exec('echo');
         setInterval(async () => {
@@ -88,7 +93,6 @@ class SudoerDarwin extends SudoerUnix {
 
     constructor(options={}) {
         super(options);
-        let self = this;
         // Validate options
         if (options.icns && typeof options.icns !== 'string') {
             throw new Error('options.icns must be a string if provided.');
@@ -132,6 +136,7 @@ class SudoerDarwin extends SudoerUnix {
                 env = self.prepareEnv(options),
                 sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
                 result;
+            await self.reset();
             try {
                 result = await exec(sudoCommand, options);
                 resolve(result);
@@ -146,6 +151,23 @@ class SudoerDarwin extends SudoerUnix {
                     reject(err);
                 }
             }
+        });
+    }
+
+    async spawn(command, args, options={}) {
+        return new Promise(async (resolve, reject) => {
+            let self = this,
+                bin = '/usr/bin/sudo',
+                cp;
+            await self.reset();
+            // Prompt password
+            await self.prompt();
+            cp = spawn(bin, ['-n', '-s', '-E', [command, ...args].join(' ')], options);
+            cp.on('error', async (err) => {
+                reject(err);
+            });
+            self.cp = cp;
+            resolve(cp);
         });
     }
 
@@ -274,7 +296,7 @@ class SudoerLinux extends SudoerUnix {
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
-            './src/bin/gksudo'
+            './bin/gksudo'
         ];
     }
 
@@ -298,31 +320,37 @@ class SudoerLinux extends SudoerUnix {
                 } catch (err) {
                     return null;
                 }
-        }));
+            })
+        );
     }
 
     async exec(command, options={}) {
         return new Promise(async (resolve, reject) => {
             let self = this,
                 result;
-            // Detect utility for sudo mode
+            /* Detect utility for sudo mode */
             if (!self.binary) {
-                self.binary = (await self.getBinary()).filter(v => v)[0];
+                self.binary = (await self.getBinary()).filter((v) => v)[0];
             }
             if (options.env instanceof Object && !options.env.DISPLAY) {
                 // Force DISPLAY variable with default value which is required for UI dialog
                 options.env = Object.assign(options.env, {DISPLAY: ':0'});
             }
-            let sudo = `"${this.escapeDoubleQuotes(self.binary)}" `;
+            // In order to guarantee succees execution we'll use execFile
+            // due to fallback binary bundled in package
+            let sudo = this.escapeDoubleQuotes(self.binary),
+                args = [];
             if (/gksudo/i.test(self.binary)) {
-                sudo += `-d --preserve-env --sudo-mode ` +
-                    `--description="${self.escapeDoubleQuotes(self.options.name)}" `;
+                args.push('--preserve-env');
+                args.push('--sudo-mode');
+                args.push(`--description="${self.escapeDoubleQuotes(self.options.name)}"`);
+                args.push('--sudo-mode');
             } else if (/pkexec/i.test(self.binary)) {
-                sudo += '--disable-internal-agent ';
+                args.push('--disable-internal-agent');
             }
-            let sudoCommand = `${sudo} ${command}`;
+            args.push(command);
             try {
-                result = await exec(sudoCommand, options);
+                result = await execFile(sudo, args, options);
                 return resolve(result);
             } catch (err) {
                 return reject(err);
@@ -333,6 +361,85 @@ class SudoerLinux extends SudoerUnix {
 
 class SudoerWin32 extends Sudoer {
 
+    constructor(options={}) {
+        super(options);
+        /* There are Node APIs that can execute binaries like child_process.exec,
+        child_process.spawn and child_process.execFile, but only execFile is supported to
+        execute binaries inside asar archive.
+
+        This is because exec and spawn accept command instead of file as input,
+        and commands are executed under shell. There is no reliable way to determine whether
+        a command uses a file in asar archive, and even if we do, we can not be sure whether
+        we can replace the path in command without side effects. */
+        this.bin = './bin/elevate.exe';
+    }
+
+    async writeBatch(command, env) {
+        let tmpDir = (await exec('echo %temp%'))
+                .stdout.toString()
+                .replace(/\r\n$/, ''),
+            tmpBatchFile = tmpDir + '\\batch-' + Math.random() + '.bat',
+            tmpOutputFile = tmpDir + '\\output-' + Math.random();
+        if (env && env.length) {
+            command = 'set ' + env.join(' && set ') + ' && ' + command;
+        }
+        await writeFile(tmpBatchFile, `${command} > ${tmpOutputFile}`);
+        await writeFile(tmpOutputFile, '');
+        return {
+            batch: tmpBatchFile, output: tmpOutputFile
+        };
+    }
+
+    async watchOutput(files, cp) {
+        let self = this,
+            output = await readFile(files.output).stdout;
+        // If we have process then emit watched and stored data to stdout
+        if (cp) { cp.stdout.emit('data', output); }
+        let watcher = watchFile(
+            files.output, {persistent: true, interval: 1},
+            () => {
+                let stream = createReadStream(
+                        files.output,
+                        {start: watcher.last}
+                    ),
+                    size = 0;
+                stream.on('data', (data) => {
+                    size += data.length;
+                    if (cp) { cp.stdout.emit('data', data); }
+                });
+                stream.on('close', () => {
+                    watcher.last += size;
+                });
+            }
+        );
+        watcher.last = output.length;
+        watcher.last = 0;
+        if (cp) {
+            cp.on('exit', () => {
+                self.clean();
+            });
+        } else {
+            self.clean();
+        }
+    }
+
+    async exec(command, options={}) {
+        return new Promise(async (resolve, reject) => {
+
+        });
+    }
+
+    async spawn(command, options={}) {
+        return new Promise(async (resolve, reject) => {
+
+        });
+    }
+
+    clean (files) {
+        unwatchFile(files.output);
+        unlink(files.batch);
+        unlink(files.output);
+    }
 }
 
 

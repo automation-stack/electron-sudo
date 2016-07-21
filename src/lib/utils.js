@@ -18,7 +18,7 @@ function promisify(fn) {
 
 async function execFile(cmd, options={}) {
     return new Promise((resolve, reject) => {
-        child.execFile(cmd, options || {}, (err, stdout, stderr) => {
+        child.execFile(cmd, options, (err, stdout, stderr) => {
             if (err) { return reject(err); }
             return resolve({stdout, stderr});
         });
@@ -34,19 +34,16 @@ async function exec(cmd, options={}) {
     });
 }
 
-async function spawn(cmd, args, options={}) {
-    return new Promise((resolve, reject) => {
-        let cp = child.spawn(cmd, args, options || {});
-        cp.output = { stdout: new Buffer(0), stderr: new Buffer(0) };
-        cp.stdout.on('data', (data) => {
-            cp.output.stdout = concat(data, cp.output.stdout);
-        });
-        cp.stderr.on('data', (data) => {
-            cp.output.stderr = concat(data, cp.output.stderr);
-        });
-        cp.on('error', (err) => { return reject(err); });
-        cp.on('exit', () => { return resolve(cp); });
+function spawn(cmd, args, options={}) {
+    let cp = child.spawn(cmd, args, {...options, shell: true});
+    cp.output = { stdout: new Buffer(0), stderr: new Buffer(0) };
+    cp.stdout.on('data', (data) => {
+        cp.output.stdout = concat(data, cp.output.stdout);
     });
+    cp.stderr.on('data', (data) => {
+        cp.output.stderr = concat(data, cp.output.stderr);
+    });
+    return cp;
 }
 
 function concat(source, target) {
@@ -61,7 +58,8 @@ function concat(source, target) {
 
 let stat = promisify(fs.stat),
     mkdir = promisify(fs.mkdir),
-    readFile = promisify(fs.readFile);
+    readFile = promisify(fs.readFile),
+    writeFile = promisify(fs.writeFile);
 
 
-export {readFile, execFile, spawn, exec, mkdir, stat};
+export {readFile, writeFile, execFile, spawn, exec, mkdir, stat};
