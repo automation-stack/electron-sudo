@@ -1,5 +1,5 @@
 import {tmpdir} from 'os';
-import {watchFile, unwatchFile, unlink, createReadStream} from 'fs';
+import {open, read, watchFile, unwatchFile, unlink, createReadStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
@@ -14,6 +14,17 @@ class Sudoer {
         this.platform = platform;
         this.options = options;
         this.cp = null;
+    }
+
+    joinEnv(options) {
+        let {env} = options,
+            spreaded = [];
+        if (env && typeof env == 'object') {
+            for (let key in env) {
+                spreaded.push(key.concat('=', env[key]));
+            }
+        }
+        return spreaded;
     }
 
     escapeDoubleQuotes(string) {
@@ -119,7 +130,7 @@ class SudoerDarwin extends SudoerUnix {
         return this.hash;
     }
 
-    prepareEnv(options) {
+    joinEnv(options) {
         let {env} = options,
             spreaded = [];
         if (env && typeof env == 'object') {
@@ -133,7 +144,7 @@ class SudoerDarwin extends SudoerUnix {
     async exec(command, options={}) {
         return new Promise(async (resolve, reject) => {
             let self = this,
-                env = self.prepareEnv(options),
+                env = self.joinEnv(options),
                 sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
                 result;
             await self.reset();
@@ -291,24 +302,13 @@ class SudoerLinux extends SudoerUnix {
 
     constructor(options={}) {
         super(options);
-        this.bin = null;
+        this.binary = null;
         // We prefer gksudo over pkexec since it gives a nicer prompt:
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
             './bin/gksudo'
         ];
-    }
-
-    prepareEnv(options) {
-        let {env} = options,
-            spreaded = [];
-        if (env && typeof env == 'object') {
-            for (let key in env) {
-                spreaded.push(key.concat('=', env[key]));
-            }
-        }
-        return spreaded;
     }
 
     async getBinary() {
@@ -371,15 +371,15 @@ class SudoerWin32 extends Sudoer {
         and commands are executed under shell. There is no reliable way to determine whether
         a command uses a file in asar archive, and even if we do, we can not be sure whether
         we can replace the path in command without side effects. */
-        this.bin = './bin/elevate.exe';
+        this.binary = './bin/elevate.exe';
     }
 
     async writeBatch(command, env) {
         let tmpDir = (await exec('echo %temp%'))
                 .stdout.toString()
                 .replace(/\r\n$/, ''),
-            tmpBatchFile = tmpDir + '\\batch-' + Math.random() + '.bat',
-            tmpOutputFile = tmpDir + '\\output-' + Math.random();
+            tmpBatchFile = `${tmpDir}\\batch-${Math.random()}.bat`,
+            tmpOutputFile = `${tmpDir}\\output-${Math.random()}`;
         if (env && env.length) {
             command = 'set ' + env.join(' && set ') + ' && ' + command;
         }
@@ -395,23 +395,28 @@ class SudoerWin32 extends Sudoer {
             output = await readFile(files.output).stdout;
         // If we have process then emit watched and stored data to stdout
         if (cp) { cp.stdout.emit('data', output); }
-        let watcher = watchFile(
-            files.output, {persistent: true, interval: 1},
-            () => {
-                let stream = createReadStream(
-                        files.output,
-                        {start: watcher.last}
-                    ),
-                    size = 0;
-                stream.on('data', (data) => {
-                    size += data.length;
-                    if (cp) { cp.stdout.emit('data', data); }
-                });
-                stream.on('close', () => {
-                    watcher.last += size;
-                });
-            }
-        );
+        let fd = open(files.output, 'r'),
+            watcher = watchFile(
+                files.output, {persistent: true, interval: 1},
+                () => {
+                    read(fd, null, null, null, watcher.last, (err, bytes, data) => {
+                        if (cp) { cp.stdout.emit('data', data); }
+                        watcher.last += data.length;
+                    });
+                    // let stream = createReadStream(
+                    //         files.output,
+                    //         {start: watcher.last}
+                    //     ),
+                    //     size = 0;
+                    // stream.on('data', (data) => {
+                    //     size += data.length;
+                    //     if (cp) { cp.stdout.emit('data', data); }
+                    // });
+                    // stream.on('close', () => {
+                    //     watcher.last += size;
+                    // });
+                }
+            );
         watcher.last = output.length;
         watcher.last = 0;
         if (cp) {
@@ -421,18 +426,43 @@ class SudoerWin32 extends Sudoer {
         } else {
             self.clean();
         }
+        return cp;
     }
 
     async exec(command, options={}) {
         return new Promise(async (resolve, reject) => {
-
+            let files = self.writeBatch(self.joinEnv(options.env)),
+                sudo = this.encloseDoubleQuotes(join(__dirname, self.binary)),
+                args = [],
+                cp;
+            args.push('-wait');
+            args.push(files.batch);
+            args.push(command);
+            try {
+                // No need to wait exec output because output is redirected to temporary file
+                cp = execFile(sudo, args, options, {wait: false});
+                // Read entire output from redirected file on process exit
+                cp.on('exit', async () => {
+                    let data = await readFile(files.output);
+                    resolve(data);
+                });
+            } catch (err) {
+                return reject(err);
+            }
         });
     }
 
     async spawn(command, options={}) {
-        return new Promise(async (resolve, reject) => {
-
-        });
+        let files = self.writeBatch(self.joinEnv(options.env)),
+            sudo = this.encloseDoubleQuotes(join(__dirname, self.binary)),
+            args = [],
+            cp;
+        args.push('-wait');
+        args.push(files.batch);
+        args.push(command);
+        cp = spawn(sudo, args, options);
+        self.watchOutput(files, cp);
+        return cp;
     }
 
     clean (files) {

@@ -16,12 +16,16 @@ function promisify(fn) {
     };
 }
 
-async function execFile(cmd, options={}) {
+async function execFile(cmd, args, options={}, wait=true) {
     return new Promise((resolve, reject) => {
-        child.execFile(cmd, options, (err, stdout, stderr) => {
-            if (err) { return reject(err); }
-            return resolve({stdout, stderr});
-        });
+        if (wait) {
+            child.execFile(cmd, args, options, (err, stdout, stderr) => {
+                if (err) { return reject(err); }
+                return resolve({stdout, stderr});
+            });
+        } else {
+            resolve(child.execFile(cmd, args, options));
+        }
     });
 }
 
