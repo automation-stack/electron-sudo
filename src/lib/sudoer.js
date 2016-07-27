@@ -1,9 +1,9 @@
 import {tmpdir} from 'os';
-import {open, read, watchFile, unwatchFile, unlink, createReadStream} from 'fs';
+import {read, watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {execFile, readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+import {execFile, readFile, writeFile, exec, spawn, mkdir, stat, open} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -14,6 +14,15 @@ class Sudoer {
         this.platform = platform;
         this.options = options;
         this.cp = null;
+        this.tmpdir = tmpdir();
+    }
+
+    hash(buffer) {
+        let hash = createHash('sha256');
+        hash.update('electron-sudo');
+        hash.update(this.options.name || '');
+        hash.update(buffer || new Buffer(0));
+        return hash.digest('hex').slice(-32);
     }
 
     joinEnv(options) {
@@ -33,6 +42,14 @@ class Sudoer {
 
     encloseDoubleQuotes(string) {
         return string.replace(/(.+)/g, '"$1"');
+    }
+
+    kill(pid) {
+        if (!pid) {
+            return;
+        } else {
+            return;
+        }
     }
 }
 
@@ -75,25 +92,6 @@ class SudoerUnix extends Sudoer {
         });
     }
 
-    async acquire() {
-        if (platform === 'linux') {
-            throw new Error(`Acquiring privileges not supported on "${platform}"`);
-        }
-        // Acquire elevated rigths and hold it to prevent repeated prompting
-        await exec('echo');
-        setInterval(async () => {
-            await exec('echo');
-        }, 1000);
-    }
-
-    kill(pid) {
-        if (!pid) {
-            return;
-        } else {
-            return;
-        }
-    }
-
     async reset() {
         await exec('/usr/bin/sudo -k');
     }
@@ -110,8 +108,6 @@ class SudoerDarwin extends SudoerUnix {
         } else if (options.icns && options.icns.trim().length === 0) {
             throw new Error('options.icns must be a non-empty string if provided.');
         }
-        this.hash = null;
-        this.tmpdir = tmpdir();
         this.up = false;
     }
 
@@ -119,15 +115,6 @@ class SudoerDarwin extends SudoerUnix {
         // We use 70 characters as a limit to side-step any issues with Unicode
         // normalization form causing a 255 character string to exceed the fs limit.
         return /^[a-z0-9 ]+$/i.test(name) && name.trim().length > 0 && name.length < 70;
-    }
-
-    getHash(buffer) {
-        let hash = createHash('sha256');
-        hash.update('electron-sudo');
-        hash.update(this.options.name);
-        hash.update(buffer);
-        this.hash = hash.digest('hex').slice(-32);
-        return this.hash;
     }
 
     joinEnv(options) {
@@ -209,7 +196,7 @@ class SudoerDarwin extends SudoerUnix {
             self.up = true;
             // Read ICNS-icon and hash it
             let icon = await self.readIcns(),
-                hash = self.getHash(icon);
+                hash = self.hash(icon);
             // Copy applet to temporary directory
             let source = join(`${__dirname}/../bin`, 'applet.app'),
                 target = join(self.tmpdir, hash, `${self.options.name}.app`);
@@ -233,7 +220,6 @@ class SudoerDarwin extends SudoerUnix {
                 return reject(err);
             }
             this.up = false;
-            this.hash = null;
             return resolve(hash);
         });
     }
@@ -371,104 +357,120 @@ class SudoerWin32 extends Sudoer {
         and commands are executed under shell. There is no reliable way to determine whether
         a command uses a file in asar archive, and even if we do, we can not be sure whether
         we can replace the path in command without side effects. */
-        this.binary = './bin/elevate.exe';
+        this.bundled = `src\\bin\\elevate.exe`;
+        this.binary = null;
     }
 
-    async writeBatch(command, env) {
+    async writeBatch(command, args, options) {
         let tmpDir = (await exec('echo %temp%'))
                 .stdout.toString()
                 .replace(/\r\n$/, ''),
             tmpBatchFile = `${tmpDir}\\batch-${Math.random()}.bat`,
-            tmpOutputFile = `${tmpDir}\\output-${Math.random()}`;
-        if (env && env.length) {
-            command = 'set ' + env.join(' && set ') + ' && ' + command;
+            tmpOutputFile = `${tmpDir}\\output-${Math.random()}`,
+            env = this.joinEnv(options),
+            batch = `setlocal enabledelayedexpansion\r\n`;
+        if (env.length) {
+            batch += `set ${env.join('\r\nset ')}\r\n`;
         }
-        await writeFile(tmpBatchFile, `${command} > ${tmpOutputFile}`);
+        if (args && args.length) {
+            batch += `${command} ${args.join(' ')}`;
+        } else {
+            batch += command
+        }
+        await writeFile(tmpBatchFile, `${batch} > ${tmpOutputFile} 2>&1`);
         await writeFile(tmpOutputFile, '');
         return {
             batch: tmpBatchFile, output: tmpOutputFile
         };
     }
 
-    async watchOutput(files, cp) {
+    async watchOutput(cp) {
         let self = this,
-            output = await readFile(files.output).stdout;
+            output = await readFile(cp.files.output);
         // If we have process then emit watched and stored data to stdout
-        if (cp) { cp.stdout.emit('data', output); }
-        let fd = open(files.output, 'r'),
-            watcher = watchFile(
-                files.output, {persistent: true, interval: 1},
+        cp.stdout.emit('data', output);
+        let watcher = watchFile(
+                cp.files.output, {persistent: true, interval: 1},
                 () => {
-                    read(fd, null, null, null, watcher.last, (err, bytes, data) => {
+                    let stream = createReadStream(
+                            cp.files.output,
+                            {start: watcher.last}
+                        ),
+                        size = 0;
+                    stream.on('data', (data) => {
+                        size += data.length;
                         if (cp) { cp.stdout.emit('data', data); }
-                        watcher.last += data.length;
                     });
-                    // let stream = createReadStream(
-                    //         files.output,
-                    //         {start: watcher.last}
-                    //     ),
-                    //     size = 0;
-                    // stream.on('data', (data) => {
-                    //     size += data.length;
-                    //     if (cp) { cp.stdout.emit('data', data); }
-                    // });
-                    // stream.on('close', () => {
-                    //     watcher.last += size;
-                    // });
+                    stream.on('close', () => {
+                        cp.last += size;
+                    });
                 }
             );
-        watcher.last = output.length;
-        watcher.last = 0;
-        if (cp) {
-            cp.on('exit', () => {
-                self.clean();
-            });
-        } else {
-            self.clean();
-        }
+        cp.last = output.length;
+        cp.on('exit', () => {
+            self.clean(cp);
+        });
         return cp;
     }
 
-    async exec(command, options={}) {
+    async prepare() {
+        let self = this;
         return new Promise(async (resolve, reject) => {
-            let files = self.writeBatch(self.joinEnv(options.env)),
-                sudo = this.encloseDoubleQuotes(join(__dirname, self.binary)),
-                args = [],
-                cp;
-            args.push('-wait');
-            args.push(files.batch);
-            args.push(command);
-            try {
-                // No need to wait exec output because output is redirected to temporary file
-                cp = execFile(sudo, args, options, {wait: false});
-                // Read entire output from redirected file on process exit
-                cp.on('exit', async () => {
-                    let data = await readFile(files.output);
-                    resolve(data);
+            if (self.binary) { return resolve(self.binary); }
+            // Copy applet to temporary directory
+            let target = join(this.tmpdir, 'elevate.exe');
+            if (!(await stat(target))) {
+                let copied = createWriteStream(target);
+                createReadStream(self.bundled).pipe(copied);
+                copied.on('close', () => {
+                    self.binary = target;
+                    return resolve(self.binary);
                 });
+                copied.on('error', (err) => {
+                    return reject(err);
+                });
+            } else {
+                self.binary = target;
+                resolve(self.binary);
+            }
+        });
+    }
+
+    async exec(command, options={}) {
+        let self = this, files, output;
+        return new Promise(async (resolve, reject) => {
+            try {
+                await this.prepare();
+                files = await self.writeBatch(command, [], options);
+                command = `${self.encloseDoubleQuotes(self.binary)} -wait ${files.batch}`;
+                // No need to wait exec output because output is redirected to temporary file
+                await exec(command, options);
+                // Read entire output from redirected file on process exit
+                output = await readFile(files.output);
+                return resolve(output);
             } catch (err) {
                 return reject(err);
             }
         });
     }
 
-    async spawn(command, options={}) {
-        let files = self.writeBatch(self.joinEnv(options.env)),
-            sudo = this.encloseDoubleQuotes(join(__dirname, self.binary)),
-            args = [],
+    async spawn(command, args, options={}) {
+        let files = await this.writeBatch(command, args, options),
+            sudoArgs = [],
             cp;
-        args.push('-wait');
-        args.push(files.batch);
-        args.push(command);
-        cp = spawn(sudo, args, options);
-        self.watchOutput(files, cp);
+        sudoArgs.push('-wait');
+        sudoArgs.push(files.batch);
+        await this.prepare();
+        cp = spawn(this.binary, sudoArgs, options, {wait: false});
+        cp.files = files;
+        await this.watchOutput(cp);
         return cp;
     }
 
-    clean (files) {
-        unwatchFile(files.output);
-        unlink(files.batch);
-        unlink(files.output);
+    clean (cp) {
+        unwatchFile(cp.files.output);
+        unlink(cp.files.batch);
+        unlink(cp.files.output);
     }
 }
 

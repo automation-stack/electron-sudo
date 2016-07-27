@@ -28,6 +28,22 @@ describe(`electron-sudo :: ${platform}`, function () {
                 expect(second).to.be.a.null();
             });
         });
+        describe('[exec] with ENV vars', async function () {
+            it('should available environment variables', async function () {
+                let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                expect(result.stdout.trim()).to.be.equals('VALUE');
+            });
+        });
+        describe('[spawn] with ENV vars', async function () {
+            it('should available environment variables', async function (done) {
+                let cp = await sudoer.spawn('echo', ['$PARAM'], {env: {PARAM: 'VALUE'}});
+                cp.on('close', () => {
+                    expect(cp.output.stdout.toString().trim()).to.be.equals('VALUE');
+                    expect(cp.pid).to.be.a('number');
+                    done();
+                });
+            });
+        });
     }
 
     if (platform === 'linux') {
@@ -49,22 +65,24 @@ describe(`electron-sudo :: ${platform}`, function () {
         });
     }
 
-    describe('[exec] with ENV vars', async function () {
-        it('should available environment variables', async function () {
-            let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
-            expect(result.stdout.trim()).to.be.equals('VALUE');
-        });
-    });
-    describe('[spawn] with ENV vars', async function () {
-        it('should available environment variables', async function (done) {
-            let cp = await sudoer.spawn('echo', ['$PARAM'], {env: {PARAM: 'VALUE'}});
-            cp.on('close', () => {
-                expect(cp.output.stdout.toString().trim()).to.be.equals('VALUE');
-                expect(cp.pid).to.be.a('number');
-                done();
+    if (platform === 'win32') {
+        describe('[exec] with ENV vars', async function () {
+            it('should available environment variables', async function () {
+                let result = await sudoer.exec('echo %PARAM%', {env: {PARAM: 'VALUE'}});
+                expect(result.toString().trim()).to.be.equals('VALUE');
             });
         });
-    });
+        describe('[spawn] with ENV vars', async function () {
+            it('should available environment variables', async function (done) {
+                let cp = await sudoer.spawn('echo', ['%PARAM%'], {env: {PARAM: 'VALUE'}});
+                cp.on('close', () => {
+                    expect(cp.output.stdout.toString().trim()).to.be.equals('VALUE');
+                    expect(cp.pid).to.be.a('number');
+                    done();
+                });
+            });
+        });
+    }
 
 
 });

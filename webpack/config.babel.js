@@ -21,7 +21,7 @@ export default {
         libraryTarget: 'umd'
     },
     target: 'electron',
-    debug: false,
+    debug: true,
     devtool: 'source-map',
     module: {
         loaders: [
@@ -41,14 +41,18 @@ export default {
     },
     plugins: [
         new webpack.IgnorePlugin(/node_modules/),
+        new webpack.BannerPlugin(
+            'require("source-map-support").install();',
+            { raw: false, entryOnly: true }
+        ),
         new CopyWebpackPlugin([
             {from: `${srcPath}/bin`, to: './bin'}
         ]),
         new ShellPlugin({
             onBuildExit: [
-                `chmod +x ${distPath}/bin/applet.app`,
-                `chmod +x ${distPath}/bin/applet.app/Contents/MacOS/applet`,
-                `chmod +x ${distPath}/bin/gksudo`
+                `node ./webpack/chmod.js +x ${distPath}/bin/applet.app`,
+                `node ./webpack/chmod.js +x ${distPath}/bin/applet.app/Contents/MacOS/applet`,
+                `node ./webpack/chmod.js +x ${distPath}/bin/gksudo`
             ]
         })
     ],
@@ -61,7 +65,7 @@ export default {
         global: false,
         buffer: false,
         crypto: false,
-        __filename: false,
+        __filename: true,
         __dirname: true
     },
     externals: nodeModules
