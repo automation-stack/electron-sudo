@@ -10,7 +10,9 @@ let nodeModules = fs.readdirSync('./node_modules')
     .reduce((prev, module) => {
         return Object.assign(prev, {[module]: 'commonjs ' + module});
     }, {}),
-    srcPath = './src/', distPath = './dist';
+    srcPath = './src/',
+    distPath = './dist',
+    babelNode = './node_modules/babel-cli/bin/babel-node.js';
 
 export default {
     entry: [`${srcPath}/index.js`],
@@ -50,9 +52,10 @@ export default {
         ]),
         new ShellPlugin({
             onBuildExit: [
-                `node ./webpack/chmod.js +x ${distPath}/bin/applet.app`,
-                `node ./webpack/chmod.js +x ${distPath}/bin/applet.app/Contents/MacOS/applet`,
-                `node ./webpack/chmod.js +x ${distPath}/bin/gksudo`
+                `node ${babelNode} ./webpack/chmod.js ` +
+                    `${distPath}/bin/applet.app ` +
+                    `${distPath}/bin/applet.app/Contents/MacOS/applet ` +
+                    `${distPath}/bin/gksudo`,
             ]
         })
     ],
