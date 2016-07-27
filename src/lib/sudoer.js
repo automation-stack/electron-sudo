@@ -1,9 +1,9 @@
 import {tmpdir} from 'os';
-import {read, watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
+import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {execFile, readFile, writeFile, exec, spawn, mkdir, stat, open} from '~/lib/utils';
+import {execFile, readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -357,7 +357,7 @@ class SudoerWin32 extends Sudoer {
         and commands are executed under shell. There is no reliable way to determine whether
         a command uses a file in asar archive, and even if we do, we can not be sure whether
         we can replace the path in command without side effects. */
-        this.bundled = `src\\bin\\elevate.exe`;
+        this.bundled = 'src\\bin\\elevate.exe';
         this.binary = null;
     }
 
@@ -375,7 +375,7 @@ class SudoerWin32 extends Sudoer {
         if (args && args.length) {
             batch += `${command} ${args.join(' ')}`;
         } else {
-            batch += command
+            batch += command;
         }
         await writeFile(tmpBatchFile, `${batch} > ${tmpOutputFile} 2>&1`);
         await writeFile(tmpOutputFile, '');

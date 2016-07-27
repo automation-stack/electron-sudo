@@ -1,12 +1,6 @@
 ## Electron subprocess with administrative privileges
 
-[![Join the chat at https://gitter.im/automation-stack/electron-sudo](https://badges.gitter.im/automation-stack/electron-sudo.svg)](https://gitter.im/automation-stack/electron-sudo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background subprocesse which run native Electron apps that need sudo.
-
-`electron-sudo` provides a native OS dialog prompt on **Windows** (UAC), on **OS X** and **Linux** with custom name and optional icon, `has no external dependencies and does not require any native bindings`.
-
-`electron-sudo` is based on [sudo-prompt](https://github.com/jorangreef/sudo-prompt), but fully cross-platform more configurable and adaptive for native Electron applications.
 
 - `Windows`, use native "User Account Control" (UAC)
 - `OS X`, use bundled applet
@@ -15,6 +9,11 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 <img height="150px" src="./src/assets/win32.png">
 <img height="150px" src="./src/assets/osx.png">
 <img height="150px" src="./src/assets/linux.png">
+
+## Features
+  - Supports ```spawn``` and ```exec``` subprocess behavior
+  - Supports applications packaged as ```asar``` archive
+  - No external dependencies and does not require any native bindings
 
 ## Platform-specific sources
 
@@ -33,6 +32,28 @@ npm install electron-sudo
 Note: Your command should not start with the `sudo` prefix.
 
 ### Version 4.0.*
+```js
+import Sudoer from 'electron-sudo';
+let sudoer = new Sudoer(options);
+/*
+ Spawn subprocess behavior
+*/
+let cp = await sudoer.spawn(
+  'echo', ['$PARAM'], {env: {PARAM: 'VALUE'}}
+);
+cp.on('close', () => {
+  // cp.output.stdout (Buffer)
+  // cp.output.stderr (Buffer)
+});
+
+/*
+ Exec subprocess behavior
+*/
+let result = await sudoer.exec(
+  'echo $PARAM', {env: {PARAM: 'VALUE'}}
+);
+// result is Buffer with mixed (both stdout and stderr) output
+```
 
 ### Version 3.0.* (deprecated)
 ```js
@@ -57,8 +78,6 @@ var options = {
 };
 sudo.exec('echo hello', options, function(error) {});
 ```
-
-`electron-sudo` will use `process.title` as `options.name` if `options.name` is not provided. `options.name` must be alphanumeric only (spaces are supported) and at most 70 characters.
 
 ## Usage with Webpack
 
