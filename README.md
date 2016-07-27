@@ -21,7 +21,7 @@ npm install electron-sudo
 ```
 
 ## Usage
-Note: Your command should not start with the `sudo` prefix.
+**Note: Your command should not start with the ```sudo``` prefix.**
 
 ### Version 4.0.*
 ```js
