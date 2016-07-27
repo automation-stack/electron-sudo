@@ -5,8 +5,8 @@ import Sudoer from '../dist/index';
 let {expect} = chai,
     {platform} = process,
     options = {
-        name: 'Sudo application',
-        icns: '/Applications/Chess.app/Contents/Resources/Chess.icns'
+        name: 'Electron.Sudo',
+        icns: '/Applications/Automator.app/Contents/Resources/AutomatorApplet.icns'
     },
     sudoer = new Sudoer(options);
 chai.use(dirtyChai);
