@@ -12,9 +12,9 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 - `OS X`, use bundled applet
 - `Linux`, we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
 
-<img height="80px" src="./src/assets/win32.png">
-<img height="80px" src="./src/assets/osx.png">
-<img height="80px" src="./src/assets/linux1.png">
+<img height="150px" src="./src/assets/win32.png">
+<img height="150px" src="./src/assets/osx.png">
+<img height="150px" src="./src/assets/linux.png">
 
 ## Platform-specific sources
 
