@@ -3,7 +3,7 @@ import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} fro
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {execFile, readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -298,22 +298,51 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async getBinary() {
-        return Promise.all(
+        let self = this;
+        return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
-                    await stat(path);
+                    path = await stat(path);
                     return path;
                 } catch (err) {
                     return null;
                 }
             })
-        );
+        )).filter((v) => v)[0];
     }
 
     async exec(command, options={}) {
         return new Promise(async (resolve, reject) => {
             let self = this,
                 result;
+            /* Detect utility for sudo mode */
+            if (!self.binary) {
+                self.binary = await self.getBinary();
+            }
+            if (options.env instanceof Object && !options.env.DISPLAY) {
+                // Force DISPLAY variable with default value which is required for UI dialog
+                options.env = Object.assign(options.env, {DISPLAY: ':0'});
+            }
+            let flags;
+            if (/gksudo/i.test(self.binary)) {
+                flags = '--preserve-env --sudo-mode ' +
+                    `--description="${self.escapeDoubleQuotes(self.options.name)}"`;
+            } else if (/pkexec/i.test(self.binary)) {
+                flags = '--disable-internal-agent';
+            }
+            command = `${this.binary} ${flags} ${command}`;
+            try {
+                result = await exec(command, options);
+                return resolve(result);
+            } catch (err) {
+                return reject(err);
+            }
+        });
+    }
+
+    async spawn(command, args, options={}) {
+        let self = this;
+        return new Promise(async (resolve, reject) => {
             /* Detect utility for sudo mode */
             if (!self.binary) {
                 self.binary = (await self.getBinary()).filter((v) => v)[0];
@@ -324,20 +353,20 @@ class SudoerLinux extends SudoerUnix {
             }
             // In order to guarantee succees execution we'll use execFile
             // due to fallback binary bundled in package
-            let sudo = this.escapeDoubleQuotes(self.binary),
-                args = [];
+            let sudoArgs = [];
             if (/gksudo/i.test(self.binary)) {
-                args.push('--preserve-env');
-                args.push('--sudo-mode');
-                args.push(`--description="${self.escapeDoubleQuotes(self.options.name)}"`);
-                args.push('--sudo-mode');
+                sudoArgs.push('--preserve-env');
+                sudoArgs.push('--sudo-mode');
+                sudoArgs.push(`--description="${self.escapeDoubleQuotes(self.options.name)}"`);
+                sudoArgs.push('--sudo-mode');
             } else if (/pkexec/i.test(self.binary)) {
-                args.push('--disable-internal-agent');
+                sudoArgs.push('--disable-internal-agent');
             }
-            args.push(command);
+            sudoArgs.push(command);
+            sudoArgs.push(args);
             try {
-                result = await execFile(sudo, args, options);
-                return resolve(result);
+                let cp = spawn(self.binary, sudoArgs, options);
+                return resolve(cp);
             } catch (err) {
                 return reject(err);
             }
@@ -349,14 +378,6 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        /* There are Node APIs that can execute binaries like child_process.exec,
-        child_process.spawn and child_process.execFile, but only execFile is supported to
-        execute binaries inside asar archive.
-
-        This is because exec and spawn accept command instead of file as input,
-        and commands are executed under shell. There is no reliable way to determine whether
-        a command uses a file in asar archive, and even if we do, we can not be sure whether
-        we can replace the path in command without side effects. */
         this.bundled = 'src\\bin\\elevate.exe';
         this.binary = null;
     }

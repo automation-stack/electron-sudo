@@ -57,10 +57,32 @@ describe(`electron-sudo :: ${platform}`, function () {
         describe('[pkexec: exec] with ENV vars', async function () {
             it('should available environment variables', async function () {
                 sudoer.binary = '/usr/bin/pkexec';
-                sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
-                await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                // sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
+                // await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
                 let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});
                 expect(result.stdout.trim()).to.be.equals('VALUE');
+            });
+        });
+        describe('[gksudo: spawn] with ENV vars', async function () {
+            it('should available environment variables', async function (done) {
+                sudoer.binary = './dist/bin/gksudo';
+                let cp = await sudoer.spawn('echo', ['$PARAM'], {env: {PARAM: 'VALUE'}});
+                cp.on('close', () => {
+                    expect(cp.output.stdout.toString().trim()).to.be.equals('VALUE');
+                    expect(cp.pid).to.be.a('number');
+                    done();
+                });
+            });
+        });
+        describe('[pkexec: spawn] with ENV vars', async function () {
+            it('should available environment variables', async function (done) {
+                sudoer.binary = '/usr/bin/pkexec';
+                let cp = await sudoer.spawn('echo', ['$PARAM'], {env: {PARAM: 'VALUE'}});
+                cp.on('close', () => {
+                    expect(cp.output.stdout.toString().trim()).to.be.equals('VALUE');
+                    expect(cp.pid).to.be.a('number');
+                    done();
+                });
             });
         });
     }
