@@ -23,8 +23,8 @@ export default {
         libraryTarget: 'umd'
     },
     target: 'electron',
-    debug: true,
-    devtool: 'source-map',
+    debug: false,
+    //devtool: 'source-map',
     module: {
         loaders: [
             {
