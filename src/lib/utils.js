@@ -16,27 +16,6 @@ function promisify(fn) {
     };
 }
 
-async function execFile(cmd, args, options={}, {wait=true}) {
-    return new Promise((resolve, reject) => {
-        if (wait) {
-            child.execFile(cmd, args, options, (err, stdout, stderr) => {
-                if (err) { return reject(err); }
-                return resolve({stdout, stderr});
-            });
-        } else {
-            let cp = child.execFile(cmd, args, options);
-            cp.output = { stdout: new Buffer(0), stderr: new Buffer(0) };
-            cp.stdout.on('data', (data) => {
-                cp.output.stdout = concat(data, cp.output.stdout);
-            });
-            cp.stderr.on('data', (data) => {
-                cp.output.stderr = concat(data, cp.output.stderr);
-            });
-            return resolve(cp);
-        }
-    });
-}
-
 async function exec(cmd, options={}) {
     return new Promise((resolve, reject) => {
         child.exec(cmd, options, (err, stdout, stderr) => {
@@ -84,4 +63,4 @@ let open = promisify(fs.open),
     writeFile = promisify(fs.writeFile);
 
 
-export {readFile, writeFile, execFile, spawn, exec, mkdir, stat, open};
+export {readFile, writeFile, spawn, exec, mkdir, stat, open};

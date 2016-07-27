@@ -4,7 +4,7 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 
 - `Windows`, use native "User Account Control" (UAC)
 - `OS X`, use bundled applet
-- `Linux`, we try to use system pkexec, gksudo or kdesudo, if it not found then use bundled gksu.
+- `Linux`, we try to use system pkexec or gksudo.
 
 <img height="150px" src="./src/assets/win32.png">
 <img height="150px" src="./src/assets/osx.png">
