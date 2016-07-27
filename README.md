@@ -13,7 +13,6 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 ## Features
   - Supports ```spawn``` and ```exec``` subprocess behavior
   - Supports applications packaged as ```asar``` archive
-  - Safe subprocess killing
   - No external dependencies and does not require any native bindings
 
 ## Installation
@@ -39,9 +38,6 @@ cp.on('close', () => {
   // cp.output.stdout (Buffer)
   // cp.output.stderr (Buffer)
 });
-
-// Kill spawned subprocess
-sudoer.kill(cp);
 
 /*
  Exec subprocess behavior
