@@ -39,6 +39,7 @@ cp.on('close', () => {
   // cp.output.stdout (Buffer)
   // cp.output.stderr (Buffer)
 });
+
 // Kill spawned subprocess
 sudoer.kill(cp);
 
