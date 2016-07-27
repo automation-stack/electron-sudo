@@ -24,10 +24,12 @@ npm install electron-sudo
 **Note: Your command should not start with the ```sudo``` prefix.**
 
 ### Version 4.0.*
+
 ```js
 import Sudoer from 'electron-sudo';
+
 let options = {name: 'electron sudo application'},
-  sudoer = new Sudoer(options);
+    sudoer = new Sudoer(options);
 /*
  Spawn subprocess behavior
 */
@@ -35,8 +37,10 @@ let cp = await sudoer.spawn(
   'echo', ['$PARAM'], {env: {PARAM: 'VALUE'}}
 );
 cp.on('close', () => {
-  // cp.output.stdout (Buffer)
-  // cp.output.stderr (Buffer)
+  /*
+    cp.output.stdout (Buffer)
+    cp.output.stderr (Buffer)
+  */
 });
 
 /*
@@ -45,10 +49,11 @@ cp.on('close', () => {
 let result = await sudoer.exec(
   'echo $PARAM', {env: {PARAM: 'VALUE'}}
 );
-// result is Buffer with mixed (both stdout and stderr) output
+/* result is Buffer with mixed (both stdout and stderr) output */
 ```
 
 ### Version 3.0.* (deprecated)
+
 ```js
 var sudo = require('electron-sudo');
 var options = {
@@ -70,6 +75,11 @@ var options = {
   }
 };
 sudo.exec('echo hello', options, function(error) {});
+```
+
+## Tests
+```
+npm i && npm test
 ```
 
 ## Usage with Webpack
