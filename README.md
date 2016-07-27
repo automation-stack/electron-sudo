@@ -13,6 +13,7 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 ## Features
   - Supports ```spawn``` and ```exec``` subprocess behavior
   - Supports applications packaged as ```asar``` archive
+  - Safe subprocess killing
   - No external dependencies and does not require any native bindings
 
 ## Installation
@@ -26,7 +27,8 @@ Note: Your command should not start with the `sudo` prefix.
 ### Version 4.0.*
 ```js
 import Sudoer from 'electron-sudo';
-let sudoer = new Sudoer(options);
+let options = {name: 'electron sudo application'},
+  sudoer = new Sudoer(options);
 /*
  Spawn subprocess behavior
 */
@@ -37,6 +39,8 @@ cp.on('close', () => {
   // cp.output.stdout (Buffer)
   // cp.output.stderr (Buffer)
 });
+// Kill spawned subprocess
+sudoer.kill(cp);
 
 /*
  Exec subprocess behavior
