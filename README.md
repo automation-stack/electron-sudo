@@ -13,8 +13,8 @@ Run a subprocess with administrative privileges, prompting the user with a graph
 ## Features
   - Supports ```spawn``` and ```exec``` subprocess behavior
   - Supports applications packaged as ```asar``` archive
-  - Separate password prompt for each call
-  - No external dependencies and does not require any native bindings
+  - Separate password prompt for each call (use ```sh``` or ```bat``` script for single prompt)
+  - No external dependencies, does not depend on OS versions
 
 ## Installation
 ```
@@ -31,9 +31,8 @@ import Sudoer from 'electron-sudo';
 
 let options = {name: 'electron sudo application'},
     sudoer = new Sudoer(options);
-/*
- Spawn subprocess behavior
-*/
+
+/* Spawn subprocess behavior */
 let cp = await sudoer.spawn(
   'echo', ['$PARAM'], {env: {PARAM: 'VALUE'}}
 );
@@ -44,13 +43,12 @@ cp.on('close', () => {
   */
 });
 
-/*
- Exec subprocess behavior
-*/
+/* Exec subprocess behavior */
 let result = await sudoer.exec(
   'echo $PARAM', {env: {PARAM: 'VALUE'}}
 );
 /* result is Buffer with mixed (both stdout and stderr) output */
+
 ```
 
 ### Version 3.0.* (deprecated)
