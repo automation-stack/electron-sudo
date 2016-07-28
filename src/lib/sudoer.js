@@ -102,7 +102,6 @@ class SudoerDarwin extends SudoerUnix {
 
     constructor(options={}) {
         super(options);
-        // Validate options
         if (options.icns && typeof options.icns !== 'string') {
             throw new Error('options.icns must be a string if provided.');
         } else if (options.icns && options.icns.trim().length === 0) {
@@ -112,8 +111,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     isValidName(name) {
-        // We use 70 characters as a limit to side-step any issues with Unicode
-        // normalization form causing a 255 character string to exceed the fs limit.
         return /^[a-z0-9 ]+$/i.test(name) && name.trim().length > 0 && name.length < 70;
     }
 
