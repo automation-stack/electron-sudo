@@ -108,8 +108,8 @@ export default {
 
 ## Platform-specific sources
 
-- [Applet [OSx]](https://github.com/automation-stack/electron-sudo/tree/master/darwin/applet.app/Contents)
-- [Elevate.exe sources [Win32/64]](https://github.com/automation-stack/electron-sudo/tree/master/win32/src)
-- [GKsu sources [Linux]](https://github.com/automation-stack/electron-sudo/tree/master/linux)
+- [Applet [OSx]](https://github.com/automation-stack/electron-sudo/tree/master/src/bin/applet.app/Contents)
+- [Elevate.exe sources [Win32/64]](https://github.com/automation-stack/electron-sudo/tree/master/src/vendor/win32)
+- [GKsu sources [Linux]](http://www.nongnu.org/gksu)
 
 If you don't trust binaries bundled in NPM package you can manually build tools and use them instead.
