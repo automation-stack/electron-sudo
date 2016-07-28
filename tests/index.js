@@ -17,17 +17,6 @@ describe(`electron-sudo :: ${platform}`, function () {
     this.slow(100000);
 
     if (platform === 'darwin') {
-        describe('OSx prompt with queuing (only single instance)', async function () {
-            it('should prompt single dialog and execute all asyncronously', async function () {
-                let first, second;
-                sudoer.prompt().then((hash) => {
-                    first = hash;
-                    expect(first).to.have.lengthOf(32);
-                });
-                second = await sudoer.prompt();
-                expect(second).to.be.a.null();
-            });
-        });
         describe('[exec] with ENV vars', async function () {
             it('should available environment variables', async function () {
                 let result = await sudoer.exec('echo $PARAM', {env: {PARAM: 'VALUE'}});

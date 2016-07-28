@@ -183,15 +183,15 @@ class SudoerDarwin extends SudoerUnix {
                 );
             }
             // Wait for password if prompt already up
-            if (self.up) {
-                let intvl = setInterval(() => {
-                    if (!self.up) {
-                        clearInterval(intvl);
-                        return resolve(null);
-                    }
-                }, 1);
-                return;
-            }
+            // if (self.up) {
+            //     let intvl = setInterval(() => {
+            //         if (!self.up) {
+            //             clearInterval(intvl);
+            //             return resolve(null);
+            //         }
+            //     }, 1);
+            //     return;
+            // }
             // Keep prompt in single instance
             self.up = true;
             // Read ICNS-icon and hash it
@@ -219,7 +219,7 @@ class SudoerDarwin extends SudoerUnix {
             } catch (err) {
                 return reject(err);
             }
-            this.up = false;
+            //this.up = false;
             return resolve(hash);
         });
     }
