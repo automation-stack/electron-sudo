@@ -182,16 +182,6 @@ class SudoerDarwin extends SudoerUnix {
                     new Error('Requires env[\'USER\'] to be defined.')
                 );
             }
-            // Wait for password if prompt already up
-            // if (self.up) {
-            //     let intvl = setInterval(() => {
-            //         if (!self.up) {
-            //             clearInterval(intvl);
-            //             return resolve(null);
-            //         }
-            //     }, 1);
-            //     return;
-            // }
             // Keep prompt in single instance
             self.up = true;
             // Read ICNS-icon and hash it
@@ -219,7 +209,6 @@ class SudoerDarwin extends SudoerUnix {
             } catch (err) {
                 return reject(err);
             }
-            //this.up = false;
             return resolve(hash);
         });
     }
@@ -265,11 +254,6 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async propertyList(target) {
-        // Value must be in single quotes (not double quotes) according to man entry.
-        // e.g. defaults write com.companyname.appname "Default Color" '(255, 0, 0)'
-        // The defaults command will be changed in an upcoming major release to only
-        // operate on preferences domains. General plist manipulation utilities will
-        // be folded into a different command-line program.
         let self = this;
         return new Promise(async (resolve, reject) => {
             let path = self.escapeDoubleQuotes(join(target, 'Contents', 'Info.plist')),
@@ -298,7 +282,6 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async getBinary() {
-        let self = this;
         return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
