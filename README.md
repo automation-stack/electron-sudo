@@ -2,9 +2,11 @@
 
 Run a subprocess with administrative privileges, prompting the user with a graphical OS dialog if necessary. Useful for background subprocesse which run native Electron apps that need sudo.
 
-- `Windows`, uses native ```User Account Control (UAC)``` (no ```PowerShell``` required)
-- `OS X`, uses bundled applet (inspired by  [Joran Dirk Greef](https://github.com/jorangreef))
-- `Linux`, uses system pkexec or gksudo (system or bundled).
+- `Windows`, uses [elevate utility](http://www.nongnu.org/gksu) with native ```User Account Control (UAC)``` prompt (no ```PowerShell``` required)
+- `OS X`, uses bundled [applet](https://github.com/automation-stack/electron-sudo/tree/master/src/bin/applet.app/Contents) (inspired by  [Joran Dirk Greef](https://github.com/jorangreef))
+- `Linux`, uses system pkexec or [gksudo](http://www.nongnu.org/gksu) (system or bundled).
+
+If you don't trust binaries bundled in NPM package you can manually build tools and use them instead.
 
 <img height="150px" src="./src/assets/win32.png">
 <img height="150px" src="./src/assets/osx.png">
@@ -105,11 +107,3 @@ export default {
     externals: nodeModules
 };
 ```
-
-## Platform-specific sources
-
-- [Applet [OSx]](https://github.com/automation-stack/electron-sudo/tree/master/src/bin/applet.app/Contents)
-- [Elevate.exe sources [Win32/64]](https://github.com/automation-stack/electron-sudo/tree/master/src/vendor/win32)
-- [GKsu sources [Linux]](http://www.nongnu.org/gksu)
-
-If you don't trust binaries bundled in NPM package you can manually build tools and use them instead.
