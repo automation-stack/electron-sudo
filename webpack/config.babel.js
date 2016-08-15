@@ -18,6 +18,7 @@ export default {
     entry: [`${srcPath}/index.js`],
     output: {
         path: distPath,
+        publicPath: distPath,
         filename: 'index.js',
         library: 'electron-sudo',
         libraryTarget: 'umd'
@@ -68,8 +69,8 @@ export default {
         global: false,
         buffer: false,
         crypto: false,
-        __filename: true,
-        __dirname: true
+        __filename: false,
+        __dirname: false
     },
     externals: nodeModules
 };

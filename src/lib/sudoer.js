@@ -185,7 +185,7 @@ class SudoerDarwin extends SudoerUnix {
             let icon = await self.readIcns(),
                 hash = self.hash(icon);
             // Copy applet to temporary directory
-            let source = join(`${dirname(__filename)}/../bin`, 'applet.app'),
+            let source = join(`${dirname(__filename)}/bin`, 'applet.app'),
                 target = join(self.tmpdir, hash, `${self.options.name}.app`);
             console.log(source, target);
             try {
