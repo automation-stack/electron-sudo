@@ -187,7 +187,6 @@ class SudoerDarwin extends SudoerUnix {
             // Copy applet to temporary directory
             let source = join(`${dirname(__filename)}/bin`, 'applet.app'),
                 target = join(self.tmpdir, hash, `${self.options.name}.app`);
-            console.log(source, target);
             try {
                 await mkdir(dirname(target));
             } catch (err) {
