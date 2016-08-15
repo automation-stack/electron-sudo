@@ -2,7 +2,7 @@
   "name": "electron-sudo",
   "version": "4.0.1",
   "description": "Electron subprocess with administrative privileges, prompting the user with an OS dialog if necessary.",
-  "main": ".dist/index.js",
+  "main": "./dist/index.js",
   "author": "Aleksandr Komlev",
   "license": "MIT",
   "repository": {
