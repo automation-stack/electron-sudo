@@ -51,6 +51,18 @@ let result = await sudoer.exec(
 );
 /* result is Buffer with mixed (both stdout and stderr) output */
 
+
+/* Usage with Vanila JS */
+
+var Sudoer = require('electron-sudo').default;
+var sudoer = new Sudoer(options);
+sudoer.spawn('echo', ['$PARAM'], {env: {PARAM: 'VALUE'}}).then(function (cp) {
+  /*
+    cp.output.stdout (Buffer)
+    cp.output.stderr (Buffer)
+  */
+});
+
 ```
 
 ### Version 3.0.* (deprecated)
