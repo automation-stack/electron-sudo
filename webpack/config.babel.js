@@ -58,6 +58,12 @@ export default {
                     `${distPath}/bin/applet.app/Contents/MacOS/applet ` +
                     `${distPath}/bin/gksudo`,
             ]
+        }),
+        new webpack.optimize.OccurenceOrderPlugin(),
+        new webpack.optimize.DedupePlugin(),
+        new webpack.optimize.UglifyJsPlugin({
+            compress: { warnings: false },
+            output: { comments: false },
         })
     ],
     node: {
