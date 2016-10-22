@@ -73,5 +73,8 @@
     "webpack-dev-server": "^1.14.1",
     "webpack-module-hot-accept": "^1.0.4",
     "webpack-shell-plugin": "^0.4.2"
+  },
+  "dependencies": {
+    "bluebird": "^3.4.6"
   }
 }
