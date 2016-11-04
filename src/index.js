@@ -1,4 +1,4 @@
-import 'babel-polyfill';
+require('babel-polyfill');
 import {SudoerDarwin, SudoerWin32, SudoerLinux} from '~/lib/sudoer';
 
 export default (() => {
