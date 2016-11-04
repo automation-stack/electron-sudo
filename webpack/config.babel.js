@@ -15,7 +15,7 @@ let nodeModules = fs.readdirSync('./node_modules')
     babelNode = './node_modules/babel-cli/bin/babel-node.js';
 
 export default {
-    entry: [`${srcPath}/index.js`],
+    entry: ['babel-polyfill', `${srcPath}/index.js`],
     output: {
         path: distPath,
         publicPath: distPath,
