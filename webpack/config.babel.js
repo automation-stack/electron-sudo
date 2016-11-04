@@ -15,7 +15,7 @@ let nodeModules = fs.readdirSync('./node_modules')
     babelNode = './node_modules/babel-cli/bin/babel-node.js';
 
 export default {
-    entry: ['babel-polyfill', `${srcPath}/index.js`],
+    entry: [`${srcPath}/index.js`],
     output: {
         path: distPath,
         publicPath: distPath,
@@ -33,9 +33,7 @@ export default {
                 exclude: /node_modules/,
                 loader: 'babel',
                 query: {
-                    cacheDirectory: true,
-                    plugins: ['transform-runtime'],
-                    presets: ['es2015', 'stage-0']
+                    cacheDirectory: true
                 }
             },
             {
