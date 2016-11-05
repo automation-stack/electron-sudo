@@ -1,9 +1,17 @@
 import {tmpdir} from 'os';
-import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
+import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream, readdir, rmdir, stat as fs_stat, chmod} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
+import {promisify} from "bluebird";
 
 import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+
+const readdirAsync = promisify(readdir);
+const unlinkAsync = promisify(unlink);
+const rmdirAsync = promisify(rmdir);
+const statAsync = promisify(fs_stat);
+const mkdirAsync = promisify(mkdir);
+const chmodAsync = promisify(chmod);
 
 let {platform, env} = process;
 
@@ -62,17 +70,42 @@ class SudoerUnix extends Sudoer {
     }
 
     async copy(source, target) {
-        return new Promise(async (resolve, reject) => {
-            source = this.escapeDoubleQuotes(normalize(source));
-            target = this.escapeDoubleQuotes(normalize(target));
+        let stats = await statAsync(source);
+        let mode = 0o755; // add execute permission, seems asar package will lose permission information.
+        if (stats.isDirectory()) {
             try {
-                let result = await exec(`/bin/cp -R -p "${source}" "${target}"`);
-                resolve(result);
+                let stats = await statAsync(target);
+                if (stats.isDirectory()) {
+                    await chmodAsync(target, mode);
+                } else {
+                    await unlinkAsync(target);
+                    await mkdirAsync(target, mode);
+                }
+            } catch (error) {
+                await mkdirAsync(target, mode);
             }
-            catch (err) {
-                reject(err);
+            for (let file of await readdirAsync(source)) {
+                await this.copy(join(source, file), join(target, file))
             }
-        });
+        } else {
+            try {
+                let stats = await statAsync(target);
+                if (stats.isDirectory()) {
+                    await rmdirAsync(target);
+                } else {
+                    await chmodAsync(target, mode);
+                }
+            } catch (error) {
+            }
+            return new Promise((resolve, reject)=> {
+                let readable = createReadStream(source);
+                readable.on("error", reject);
+                let writable = createWriteStream(target, {mode: mode});
+                writable.on("error", reject);
+                writable.on("close", resolve);
+                readable.pipe(writable);
+            })
+        }
     }
 
     async remove(target) {
