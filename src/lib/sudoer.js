@@ -325,7 +325,7 @@ class SudoerLinux extends SudoerUnix {
         return new Promise(async (resolve, reject) => {
             /* Detect utility for sudo mode */
             if (!self.binary) {
-                self.binary = (await self.getBinary()).filter((v) => v)[0];
+                self.binary = await self.getBinary();
             }
             if (options.env instanceof Object && !options.env.DISPLAY) {
                 // Force DISPLAY variable with default value which is required for UI dialog
