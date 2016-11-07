@@ -91,7 +91,7 @@ class Sudoer {
             return new Promise((resolve, reject)=> {
                 let readable = createReadStream(source);
                 readable.on("error", reject);
-                let writable = createWriteStream(target, {defaultEncoding: 'binary', mode: mode});
+                let writable = createWriteStream(target, {mode: mode});
                 writable.on("error", reject);
                 writable.on("close", resolve);
                 readable.pipe(writable);
@@ -453,9 +453,10 @@ class SudoerWin32 extends Sudoer {
 
         // Copy applet to temporary directory
         let target = join(this.tmpdir, 'elevate.exe');
-        if (!(await stat(target))) {
-            await copy(this.bundled, target)
-        }
+		
+		// even target file exists, it still need to copy, otherwise once copy failed, this program will never works.
+		await this.copy(this.bundled, target)
+
         this.binary = target;
         return this.binary;
     }
@@ -484,13 +485,10 @@ class SudoerWin32 extends Sudoer {
             cp;
         sudoArgs.push('-wait');
         sudoArgs.push(files.batch);
-        console.log(files);
         await this.prepare();
-        console.log(this.binary, sudoArgs, options, {wait: false});
         cp = spawn(this.binary, sudoArgs, options, {wait: false});
         cp.files = files;
         await this.watchOutput(cp);
-        console.log(cp);
         return cp;
     }
 
