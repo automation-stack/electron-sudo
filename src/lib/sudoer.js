@@ -59,15 +59,6 @@ class Sudoer {
             return;
         }
     }
-}
-
-
-class SudoerUnix extends Sudoer {
-
-    constructor(options={}) {
-        super(options);
-        if (!this.options.name) { this.options.name = 'Electron'; }
-    }
 
     async copy(source, target) {
         let stats = await statAsync(source);
@@ -100,12 +91,22 @@ class SudoerUnix extends Sudoer {
             return new Promise((resolve, reject)=> {
                 let readable = createReadStream(source);
                 readable.on("error", reject);
-                let writable = createWriteStream(target, {mode: mode});
+                let writable = createWriteStream(target, {defaultEncoding: 'binary', mode: mode});
                 writable.on("error", reject);
                 writable.on("close", resolve);
                 readable.pipe(writable);
             })
         }
+    }
+
+}
+
+
+class SudoerUnix extends Sudoer {
+
+    constructor(options={}) {
+        super(options);
+        if (!this.options.name) { this.options.name = 'Electron'; }
     }
 
     async remove(target) {
@@ -448,26 +449,15 @@ class SudoerWin32 extends Sudoer {
     }
 
     async prepare() {
-        let self = this;
-        return new Promise(async (resolve, reject) => {
-            if (self.binary) { return resolve(self.binary); }
-            // Copy applet to temporary directory
-            let target = join(this.tmpdir, 'elevate.exe');
-            if (!(await stat(target))) {
-                let copied = createWriteStream(target);
-                createReadStream(self.bundled).pipe(copied);
-                copied.on('close', () => {
-                    self.binary = target;
-                    return resolve(self.binary);
-                });
-                copied.on('error', (err) => {
-                    return reject(err);
-                });
-            } else {
-                self.binary = target;
-                resolve(self.binary);
-            }
-        });
+        if (this.binary) { return this.binary }
+
+        // Copy applet to temporary directory
+        let target = join(this.tmpdir, 'elevate.exe');
+        if (!(await stat(target))) {
+            await copy(this.bundled, target)
+        }
+        this.binary = target;
+        return this.binary;
     }
 
     async exec(command, options={}) {
