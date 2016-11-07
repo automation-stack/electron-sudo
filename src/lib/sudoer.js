@@ -494,10 +494,13 @@ class SudoerWin32 extends Sudoer {
             cp;
         sudoArgs.push('-wait');
         sudoArgs.push(files.batch);
+        console.log(files);
         await this.prepare();
+        console.log(this.binary, sudoArgs, options, {wait: false});
         cp = spawn(this.binary, sudoArgs, options, {wait: false});
         cp.files = files;
         await this.watchOutput(cp);
+        console.log(cp);
         return cp;
     }
 
