@@ -1,7 +1,7 @@
 import fs from 'fs';
 import webpack from 'webpack';
-import CopyWebpackPlugin from 'copy-webpack-plugin';
-import ShellPlugin from 'webpack-shell-plugin';
+// import CopyWebpackPlugin from 'copy-webpack-plugin';
+// import ShellPlugin from 'webpack-shell-plugin';
 
 let nodeModules = fs.readdirSync('./node_modules')
     .filter((module) => {
@@ -11,8 +11,8 @@ let nodeModules = fs.readdirSync('./node_modules')
         return Object.assign(prev, {[module]: 'commonjs ' + module});
     }, {}),
     srcPath = './src/',
-    distPath = './dist',
-    babelNode = './node_modules/babel-cli/bin/babel-node.js';
+    distPath = './dist';
+    // babelNode = './node_modules/babel-cli/bin/babel-node.js';
 
 export default {
     entry: [`${srcPath}/index.js`],
@@ -48,17 +48,17 @@ export default {
             'require("source-map-support").install();',
             { raw: false, entryOnly: true }
         ),
-        new CopyWebpackPlugin([
-            {from: `${srcPath}/bin`, to: './bin'}
-        ]),
-        new ShellPlugin({
-            onBuildExit: [
-                `node ${babelNode} ./webpack/chmod.js ` +
-                    `${distPath}/bin/applet.app ` +
-                    `${distPath}/bin/applet.app/Contents/MacOS/applet ` +
-                    `${distPath}/bin/gksudo`,
-            ]
-        }),
+        // new CopyWebpackPlugin([
+        //     {from: `${srcPath}/bin`, to: './bin'}
+        // ]),
+        // new ShellPlugin({
+        //     onBuildExit: [
+        //         `node ${babelNode} ./webpack/chmod.js ` +
+        //             `${distPath}/bin/applet.app ` +
+        //             `${distPath}/bin/applet.app/Contents/MacOS/applet ` +
+        //             `${distPath}/bin/gksudo`,
+        //     ]
+        // }),
         new webpack.optimize.OccurenceOrderPlugin(),
         new webpack.optimize.DedupePlugin(),
         new webpack.optimize.UglifyJsPlugin({
@@ -67,8 +67,8 @@ export default {
         })
     ],
     node: {
-        //do not include polyfills...
-        //http://webpack.github.io/docs/configuration.html#node
+        // do not include polyfills...
+        // http://webpack.github.io/docs/configuration.html#node
         console: false,
         process: false,
         child_process: false,

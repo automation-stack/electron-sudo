@@ -3,6 +3,8 @@ import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} fro
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
+import binaries from '~/lib/bin';
+import B from 'bluebird';
 import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
 
 let {platform, env} = process;
@@ -12,6 +14,7 @@ class Sudoer {
 
     constructor(options) {
         this.platform = platform;
+        this.bin = binaries[this.platform];
         this.options = options;
         this.cp = null;
         this.tmpdir = tmpdir();
@@ -62,7 +65,7 @@ class SudoerUnix extends Sudoer {
     }
 
     async copy(source, target) {
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             source = this.escapeDoubleQuotes(normalize(source));
             target = this.escapeDoubleQuotes(normalize(target));
             try {
@@ -77,7 +80,7 @@ class SudoerUnix extends Sudoer {
 
     async remove(target) {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             if (!target.startsWith(self.tmpdir)) {
                 throw new Error(`Try to remove suspicious target: ${target}.`);
             }
@@ -126,7 +129,7 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async exec(command, options={}) {
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             let self = this,
                 env = self.joinEnv(options),
                 sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
@@ -150,7 +153,7 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async spawn(command, args, options={}) {
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             let self = this,
                 bin = '/usr/bin/sudo',
                 cp;
@@ -168,7 +171,7 @@ class SudoerDarwin extends SudoerUnix {
 
     async prompt() {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             if (!self.tmpdir) {
                 return reject(
                     new Error('Requires os.tmpdir() to be defined.')
@@ -201,8 +204,9 @@ class SudoerDarwin extends SudoerUnix {
                 await self.propertyList(target);
                 // Open UI dialog with password prompt
                 await self.open(target);
+                console.log(target);
                 // Remove applet from temporary directory
-                await self.remove(target);
+                // await self.remove(target);
             } catch (err) {
                 return reject(err);
             }
@@ -212,7 +216,7 @@ class SudoerDarwin extends SudoerUnix {
 
     async icon(target) {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             if (!this.options.icns) { return resolve(); }
             let result = await self.copy(
                 this.options.icns,
@@ -224,7 +228,7 @@ class SudoerDarwin extends SudoerUnix {
 
     async open(target) {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             target = self.escapeDoubleQuotes(normalize(target));
             try {
                 let result = await exec(`open -n -W "${target}"`);
@@ -236,7 +240,7 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async readIcns(icnsPath) {
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             // ICNS is supported only on Mac.
             if (!icnsPath || platform !== 'darwin') {
                 return resolve(new Buffer(0));
@@ -252,7 +256,7 @@ class SudoerDarwin extends SudoerUnix {
 
     async propertyList(target) {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             let path = self.escapeDoubleQuotes(join(target, 'Contents', 'Info.plist')),
                 key = self.escapeDoubleQuotes('CFBundleName'),
                 value = `${self.options.name} Password Prompt`;
@@ -279,7 +283,7 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async getBinary() {
-        return (await Promise.all(
+        return (await B.Promise.all(
             this.paths.map(async (path) => {
                 try {
                     path = await stat(path);
@@ -292,7 +296,7 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async exec(command, options={}) {
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             let self = this,
                 result;
             /* Detect utility for sudo mode */
@@ -322,7 +326,7 @@ class SudoerLinux extends SudoerUnix {
 
     async spawn(command, args, options={}) {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             /* Detect utility for sudo mode */
             if (!self.binary) {
                 self.binary = await self.getBinary();
@@ -416,7 +420,7 @@ class SudoerWin32 extends Sudoer {
 
     async prepare() {
         let self = this;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             if (self.binary) { return resolve(self.binary); }
             // Copy applet to temporary directory
             let target = join(this.tmpdir, 'elevate.exe');
@@ -439,7 +443,7 @@ class SudoerWin32 extends Sudoer {
 
     async exec(command, options={}) {
         let self = this, files, output;
-        return new Promise(async (resolve, reject) => {
+        return new B.Promise(async (resolve, reject) => {
             try {
                 await this.prepare();
                 files = await self.writeBatch(command, [], options);
