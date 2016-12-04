@@ -1,11 +1,15 @@
 import {tmpdir} from 'os';
-import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import binaries from '~/lib/bin';
 import B from 'bluebird';
-import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+const {promisifyAll} = B.Promise;
+const fs = promisifyAll(require('fs'));
+const fsExtra = promisifyAll(require('fs-extra'));
+const yauzl = promisifyAll(require('yauzl'));
+
+import binaries from '~/lib/bin';
+import {exec, spawn, stat} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -15,6 +19,7 @@ class Sudoer {
     constructor(options) {
         this.platform = platform;
         this.bin = binaries[this.platform];
+        this.ready = false;
         this.options = options;
         this.cp = null;
         this.tmpdir = tmpdir();
@@ -26,6 +31,52 @@ class Sudoer {
         hash.update(this.options.name || '');
         hash.update(buffer || new Buffer(0));
         return hash.digest('hex').slice(-32);
+    }
+
+    async prepare(target) {
+        let self = this;
+        console.log(target);
+        return new B.Promise(async (resolve, reject) => {
+            try {
+                let zipfile = await yauzl.fromBufferAsync(
+                    Buffer.from(self.bin, 'base64'), {lazyEntries: true}
+                );
+                zipfile.readEntry();
+                zipfile.on('entry', async (entry) => {
+                    if (/\/$/.test(entry.fileName)) {
+                        try {
+                            await fsExtra.ensureDirAsync(join(target, entry.fileName));
+                            zipfile.readEntry();
+                        } catch (err) { reject(err); }
+                    } else {
+                        try {
+                            let readStream = await zipfile.openReadStreamAsync(entry);
+                            await fsExtra.ensureDirAsync(
+                                dirname(join(target, entry.fileName))
+                            );
+                            readStream.pipe(
+                                fs.createWriteStream(join(target, entry.fileName))
+                            );
+                            readStream.on('end', () => {
+                                zipfile.readEntry();
+                            });
+                        } catch (err) { reject(err); }
+                    }
+                });
+                zipfile.once('end', async () => {
+                    self.ready = true;
+                    zipfile.close();
+                    process.on('exit', async (code) => {
+                        await self.clean(code);
+                    });
+                    return resolve(zipfile);
+                });
+            } catch (err) { reject(err); }
+        });
+    }
+
+    async clean() {
+        await fsExtra.removeAsync(target);
     }
 
     joinEnv(options) {
@@ -64,19 +115,19 @@ class SudoerUnix extends Sudoer {
         if (!this.options.name) { this.options.name = 'Electron'; }
     }
 
-    async copy(source, target) {
-        return new B.Promise(async (resolve, reject) => {
-            source = this.escapeDoubleQuotes(normalize(source));
-            target = this.escapeDoubleQuotes(normalize(target));
-            try {
-                let result = await exec(`/bin/cp -R -p "${source}" "${target}"`);
-                resolve(result);
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
-    }
+    // async copy(source, target) {
+    //     return new B.Promise(async (resolve, reject) => {
+    //         source = this.escapeDoubleQuotes(normalize(source));
+    //         target = this.escapeDoubleQuotes(normalize(target));
+    //         try {
+    //             let result = await exec(`/bin/cp -R -p "${source}" "${target}"`);
+    //             resolve(result);
+    //         }
+    //         catch (err) {
+    //             reject(err);
+    //         }
+    //     });
+    // }
 
     async remove(target) {
         let self = this;
@@ -169,6 +220,10 @@ class SudoerDarwin extends SudoerUnix {
         });
     }
 
+    async command() {
+
+    }
+
     async prompt() {
         let self = this;
         return new B.Promise(async (resolve, reject) => {
@@ -184,27 +239,18 @@ class SudoerDarwin extends SudoerUnix {
             }
             // Keep prompt in single instance
             self.up = true;
+            let target = join(self.tmpdir, self.hash(), `${self.options.name}.app`);
+            // Deploy binary utility
+            await self.prepare(target);
             // Read ICNS-icon and hash it
-            let icon = await self.readIcns(),
-                hash = self.hash(icon);
-            // Copy applet to temporary directory
-            let source = join(`${dirname(__filename)}/bin`, 'applet.app'),
-                target = join(self.tmpdir, hash, `${self.options.name}.app`);
+            await self.readIcns();
             try {
-                await mkdir(dirname(target));
-            } catch (err) {
-                if (err.code !== 'EEXIST') { return reject(err); }
-            }
-            try {
-                // Copy application to temporary directory
-                await self.copy(source, target);
                 // Create application icon from source
                 await self.icon(target);
                 // Create property list for application
                 await self.propertyList(target);
                 // Open UI dialog with password prompt
                 await self.open(target);
-                console.log(target);
                 // Remove applet from temporary directory
                 // await self.remove(target);
             } catch (err) {
@@ -246,7 +292,7 @@ class SudoerDarwin extends SudoerUnix {
                 return resolve(new Buffer(0));
             }
             try {
-                let data = await readFile(icnsPath);
+                let data = await fs.readFileAsync(icnsPath);
                 return resolve(data);
             } catch (err) {
                 return reject(err);
@@ -382,8 +428,8 @@ class SudoerWin32 extends Sudoer {
         } else {
             batch += command;
         }
-        await writeFile(tmpBatchFile, `${batch} > ${tmpOutputFile} 2>&1`);
-        await writeFile(tmpOutputFile, '');
+        await fs.writeFileAsync(tmpBatchFile, `${batch} > ${tmpOutputFile} 2>&1`);
+        await fs.writeFileAsync(tmpOutputFile, '');
         return {
             batch: tmpBatchFile, output: tmpOutputFile
         };
@@ -391,13 +437,13 @@ class SudoerWin32 extends Sudoer {
 
     async watchOutput(cp) {
         let self = this,
-            output = await readFile(cp.files.output);
+            output = await fs.readFileAsync(cp.files.output);
         // If we have process then emit watched and stored data to stdout
         cp.stdout.emit('data', output);
-        let watcher = watchFile(
+        let watcher = fs.watchFileAsync(
                 cp.files.output, {persistent: true, interval: 1},
                 () => {
-                    let stream = createReadStream(
+                    let stream = fs.createReadStream(
                             cp.files.output,
                             {start: watcher.last}
                         ),
@@ -425,8 +471,8 @@ class SudoerWin32 extends Sudoer {
             // Copy applet to temporary directory
             let target = join(this.tmpdir, 'elevate.exe');
             if (!(await stat(target))) {
-                let copied = createWriteStream(target);
-                createReadStream(self.bundled).pipe(copied);
+                let copied = fs.createWriteStream(target);
+                fs.createReadStream(self.bundled).pipe(copied);
                 copied.on('close', () => {
                     self.binary = target;
                     return resolve(self.binary);
@@ -451,7 +497,7 @@ class SudoerWin32 extends Sudoer {
                 // No need to wait exec output because output is redirected to temporary file
                 await exec(command, options);
                 // Read entire output from redirected file on process exit
-                output = await readFile(files.output);
+                output = await fs.readFileAsync(files.output);
                 return resolve(output);
             } catch (err) {
                 return reject(err);
@@ -473,9 +519,9 @@ class SudoerWin32 extends Sudoer {
     }
 
     clean (cp) {
-        unwatchFile(cp.files.output);
-        unlink(cp.files.batch);
-        unlink(cp.files.output);
+        fs.unwatchFileAsync(cp.files.output);
+        fs.unlinkAsync(cp.files.batch);
+        fs.unlinkAsync(cp.files.output);
     }
 }
 
