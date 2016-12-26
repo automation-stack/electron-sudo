@@ -57,10 +57,4 @@ async function stat(target) {
     }
 }
 
-// let open = promisify(fs.open),
-//     mkdir = promisify(fs.mkdir),
-//     readFile = promisify(fs.readFile),
-//     writeFile = promisify(fs.writeFile);
-
-
 export {spawn, exec, stat};

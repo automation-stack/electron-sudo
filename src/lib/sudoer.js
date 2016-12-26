@@ -18,8 +18,8 @@ class Sudoer {
 
     constructor(options) {
         this.platform = platform;
-        this.bin = binaries[this.platform];
-        this.ready = false;
+        this.bin = Buffer.from(binaries[this.platform], 'base64');
+        this.target = null;
         this.options = options;
         this.cp = null;
         this.tmpdir = tmpdir();
@@ -33,13 +33,13 @@ class Sudoer {
         return hash.digest('hex').slice(-32);
     }
 
-    async prepare(target) {
+    async deploy(target) {
         let self = this;
-        console.log(target);
         return new B.Promise(async (resolve, reject) => {
             try {
+                if (typeof self.bin !== 'string') { resolve(target); }
                 let zipfile = await yauzl.fromBufferAsync(
-                    Buffer.from(self.bin, 'base64'), {lazyEntries: true}
+                    self.bin, {lazyEntries: true}
                 );
                 zipfile.readEntry();
                 zipfile.on('entry', async (entry) => {
@@ -64,18 +64,18 @@ class Sudoer {
                     }
                 });
                 zipfile.once('end', async () => {
-                    self.ready = true;
+                    self.target = target;
                     zipfile.close();
                     process.on('exit', async (code) => {
-                        await self.clean(code);
+                        await self.clean(code, target);
                     });
-                    return resolve(zipfile);
+                    return resolve(target);
                 });
             } catch (err) { reject(err); }
         });
     }
 
-    async clean() {
+    async clean(code, target) {
         await fsExtra.removeAsync(target);
     }
 
@@ -129,22 +129,22 @@ class SudoerUnix extends Sudoer {
     //     });
     // }
 
-    async remove(target) {
-        let self = this;
-        return new B.Promise(async (resolve, reject) => {
-            if (!target.startsWith(self.tmpdir)) {
-                throw new Error(`Try to remove suspicious target: ${target}.`);
-            }
-            target = this.escapeDoubleQuotes(normalize(target));
-            try {
-                let result = await exec(`rm -rf "${target}"`);
-                resolve(result);
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
-    }
+    // async remove(target) {
+    //     let self = this;
+    //     return new B.Promise(async (resolve, reject) => {
+    //         if (!target.startsWith(self.tmpdir)) {
+    //             throw new Error(`Try to remove suspicious target: ${target}.`);
+    //         }
+    //         target = this.escapeDoubleQuotes(normalize(target));
+    //         try {
+    //             let result = await exec(`rm -rf "${target}"`);
+    //             resolve(result);
+    //         }
+    //         catch (err) {
+    //             reject(err);
+    //         }
+    //     });
+    // }
 
     async reset() {
         await exec('/usr/bin/sudo -k');
@@ -209,6 +209,7 @@ class SudoerDarwin extends SudoerUnix {
                 bin = '/usr/bin/sudo',
                 cp;
             await self.reset();
+            await self.prepare();
             // Prompt password
             await self.prompt();
             cp = spawn(bin, ['-n', '-s', '-E', [command, ...args].join(' ')], options);
@@ -221,7 +222,41 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async command() {
+        let path = join(this.target, 'Contents', 'MacOS', 'sudo-prompt-command'),
+            script = [];
+        script.push(`cd "${this.escapeDoubleQuotes(process.cwd())}"`);
+        script.push(command);
+        script = script.join('\n');
+        await fs.writeFileAsync(path, script, 'utf-8');
+    }
 
+    async prepare() {
+        let self = this,
+            target = join(self.tmpdir, self.hash(), `${self.options.name}.app`);
+        return new B.Promise(async (resolve, reject) => {
+            if (!self.tmpdir) {
+                return reject(
+                    new Error('Requires os.tmpdir() to be defined.')
+                );
+            }
+            if (!env.USER) {
+                return reject(
+                    new Error('Requires env[\'USER\'] to be defined.')
+                );
+            }
+            try {
+                // Deploy binary utility
+                await self.deploy(target);
+                console.log(target);
+                // Read ICNS-icon and hash it
+                await self.readIcns();
+                // Create application icon from source
+                await self.icon(target);
+                // Create property list for application
+                await self.propertyList(target);
+                return resolve();
+            } catch (err) { return reject(err); }
+        });
     }
 
     async prompt() {
@@ -239,33 +274,24 @@ class SudoerDarwin extends SudoerUnix {
             }
             // Keep prompt in single instance
             self.up = true;
-            let target = join(self.tmpdir, self.hash(), `${self.options.name}.app`);
-            // Deploy binary utility
-            await self.prepare(target);
-            // Read ICNS-icon and hash it
-            await self.readIcns();
             try {
-                // Create application icon from source
-                await self.icon(target);
-                // Create property list for application
-                await self.propertyList(target);
+                // Create command script
+                await self.command();
                 // Open UI dialog with password prompt
                 await self.open(target);
-                // Remove applet from temporary directory
-                // await self.remove(target);
             } catch (err) {
                 return reject(err);
             }
-            return resolve(hash);
+            return resolve();
         });
     }
 
     async icon(target) {
         let self = this;
         return new B.Promise(async (resolve, reject) => {
-            if (!this.options.icns) { return resolve(); }
-            let result = await self.copy(
-                this.options.icns,
+            if (!self.options.icns) { return resolve(); }
+            let result = await fsExtra.copyAsync(
+                self.options.icns,
                 join(target, 'Contents', 'Resources', 'applet.icns')
             );
             return resolve(result);
