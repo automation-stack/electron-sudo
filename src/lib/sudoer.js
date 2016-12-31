@@ -282,8 +282,12 @@ class SudoerLinux extends SudoerUnix {
         return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
-                    await stat(path);
-                    return path;
+                    let result = await stat(path);
+                    if (result) {
+                        return path;
+                    } else {
+                        return null;
+                    }
                 } catch (err) {
                     return null;
                 }
