@@ -24,6 +24,7 @@ build/Release
 *.xcuserstate
 *.xcworkspacedata
 xcshareddata
+xcuserdata
 
 # Dependency directory
 # Deployed apps should consider commenting this line out:
