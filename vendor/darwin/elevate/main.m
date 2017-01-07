@@ -27,7 +27,30 @@
  */
 
 #import <Cocoa/Cocoa.h>
+#import "STPrivilegedTask.h"
 
 int main(int argc, const char * argv[]) {
-    return NSApplicationMain(argc, argv);
+    STPrivilegedTask *task = [[STPrivilegedTask alloc] init];
+
+    if ([[NSProcessInfo processInfo] environment][@"EMULATE_DEPRECATED"]) {
+        exit(2);
+    }
+
+    NSString *launchPath = @"/bin/sh";
+    NSArray *launchArgs = @[@"script.sh"];
+
+    [task setLaunchPath:launchPath];
+    [task setArguments:launchArgs];
+    [task setCurrentDirectoryPath:[[NSBundle mainBundle] resourcePath]];
+
+    OSStatus err = [task launch];
+    if (err != errAuthorizationSuccess) {
+        if (err == errAuthorizationCanceled) {
+            exit(1);
+        }  else {
+            exit(2);
+        }
+    }
+
+    [task waitUntilExit];
 }

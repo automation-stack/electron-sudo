@@ -8,24 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		F4C19A711BD1963900F411BD /* script.sh in Resources */ = {isa = PBXBuildFile; fileRef = F4C19A701BD1963900F411BD /* script.sh */; };
-		F4F1035E1B5155A200BCAD40 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F4F1035D1B5155A200BCAD40 /* AppDelegate.m */; };
 		F4F103601B5155A200BCAD40 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F4F1035F1B5155A200BCAD40 /* main.m */; };
-		F4F103651B5155A200BCAD40 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = F4F103631B5155A200BCAD40 /* MainMenu.xib */; };
 		F4F1037C1B515A1C00BCAD40 /* STPrivilegedTask.m in Sources */ = {isa = PBXBuildFile; fileRef = F4F1037B1B515A1C00BCAD40 /* STPrivilegedTask.m */; };
-		F4F103801B5166CF00BCAD40 /* lock-icon.icns in Resources */ = {isa = PBXBuildFile; fileRef = F4F1037F1B5166CF00BCAD40 /* lock-icon.icns */; };
+		F4F103801B5166CF00BCAD40 /* icon.icns in Resources */ = {isa = PBXBuildFile; fileRef = F4F1037F1B5166CF00BCAD40 /* icon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F4C19A701BD1963900F411BD /* script.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = script.sh; path = elevate/script.sh; sourceTree = SOURCE_ROOT; };
 		F4F103571B5155A200BCAD40 /* elevate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = elevate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4F1035B1B5155A200BCAD40 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = elevate/Info.plist; sourceTree = SOURCE_ROOT; };
-		F4F1035C1B5155A200BCAD40 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = elevate/AppDelegate.h; sourceTree = "<group>"; };
-		F4F1035D1B5155A200BCAD40 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = elevate/AppDelegate.m; sourceTree = "<group>"; };
 		F4F1035F1B5155A200BCAD40 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = main.m; path = elevate/main.m; sourceTree = "<group>"; };
-		F4F103641B5155A200BCAD40 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		F4F1037A1B515A1C00BCAD40 /* STPrivilegedTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = STPrivilegedTask.h; path = elevate/STPrivilegedTask.h; sourceTree = SOURCE_ROOT; };
 		F4F1037B1B515A1C00BCAD40 /* STPrivilegedTask.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = STPrivilegedTask.m; path = elevate/STPrivilegedTask.m; sourceTree = SOURCE_ROOT; };
-		F4F1037F1B5166CF00BCAD40 /* lock-icon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = "lock-icon.icns"; path = "elevate/lock-icon.icns"; sourceTree = SOURCE_ROOT; };
+		F4F1037F1B5166CF00BCAD40 /* icon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = icon.icns; path = elevate/icon.icns; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,8 +38,7 @@
 			isa = PBXGroup;
 			children = (
 				F4C19A701BD1963900F411BD /* script.sh */,
-				F4F103631B5155A200BCAD40 /* MainMenu.xib */,
-				F4F1037F1B5166CF00BCAD40 /* lock-icon.icns */,
+				F4F1037F1B5166CF00BCAD40 /* icon.icns */,
 				F4F1035B1B5155A200BCAD40 /* Info.plist */,
 			);
 			name = Resources;
@@ -56,8 +50,6 @@
 			children = (
 				F4F1037A1B515A1C00BCAD40 /* STPrivilegedTask.h */,
 				F4F1037B1B515A1C00BCAD40 /* STPrivilegedTask.m */,
-				F4F1035D1B5155A200BCAD40 /* AppDelegate.m */,
-				F4F1035C1B5155A200BCAD40 /* AppDelegate.h */,
 				F4F1035F1B5155A200BCAD40 /* main.m */,
 				F47C14F61C8CB70C005BC692 /* Resources */,
 				F4F103581B5155A200BCAD40 /* Products */,
@@ -129,9 +121,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F4F103801B5166CF00BCAD40 /* lock-icon.icns in Resources */,
+				F4F103801B5166CF00BCAD40 /* icon.icns in Resources */,
 				F4C19A711BD1963900F411BD /* script.sh in Resources */,
-				F4F103651B5155A200BCAD40 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,24 +134,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				F4F103601B5155A200BCAD40 /* main.m in Sources */,
-				F4F1035E1B5155A200BCAD40 /* AppDelegate.m in Sources */,
 				F4F1037C1B515A1C00BCAD40 /* STPrivilegedTask.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		F4F103631B5155A200BCAD40 /* MainMenu.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				F4F103641B5155A200BCAD40 /* Base */,
-			);
-			name = MainMenu.xib;
-			path = elevate;
-			sourceTree = SOURCE_ROOT;
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		F4F103721B5155A200BCAD40 /* Debug */ = {
