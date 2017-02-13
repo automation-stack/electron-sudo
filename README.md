@@ -13,10 +13,15 @@ If you don't trust binaries bundled in `npm` package you can manually build tool
 <img height="150px" src="./assets/linux.png">
 
 ## Features
+  - No `sudo` required
   - Supports ```spawn``` and ```exec``` subprocess behavior
   - Supports applications packaged as ```asar``` archive
   - Separate password prompt for each call (use ```sh``` or ```bat``` script for single prompt)
   - No external dependencies, does not depend on OS versions
+
+## How we decide `sudo` or not `sudo`?
+
+
 
 ## Installation
 ```

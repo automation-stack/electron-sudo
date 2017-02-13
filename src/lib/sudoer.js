@@ -146,9 +146,9 @@ class SudoerUnix extends Sudoer {
     //     });
     // }
 
-    async reset() {
-        await exec('/usr/bin/sudo -k');
-    }
+    // async reset() {
+    //     await exec('/usr/bin/sudo -k');
+    // }
 }
 
 
@@ -185,7 +185,7 @@ class SudoerDarwin extends SudoerUnix {
                 env = self.joinEnv(options),
                 sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
                 result;
-            await self.reset();
+            // await self.reset();
             try {
                 result = await exec(sudoCommand, options);
                 resolve(result);
@@ -208,7 +208,7 @@ class SudoerDarwin extends SudoerUnix {
             let self = this,
                 bin = '/usr/bin/sudo',
                 cp;
-            await self.reset();
+            // await self.reset();
             await self.prepare();
             // Prompt password
             await self.prompt();
