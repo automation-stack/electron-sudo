@@ -358,7 +358,7 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        this.bundled = 'src\\bin\\elevate.exe';
+        this.bundled = join(`${dirname(__filename)}/bin`, 'elevate.exe');
         this.binary = null;
     }
 
