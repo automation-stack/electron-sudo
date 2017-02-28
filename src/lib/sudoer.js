@@ -274,7 +274,7 @@ class SudoerLinux extends SudoerUnix {
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
-            './bin/gksudo'
+            `${dirname(__filename)}/bin/gksudo`
         ];
     }
 
