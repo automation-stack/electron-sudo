@@ -283,6 +283,7 @@ class SudoerLinux extends SudoerUnix {
             this.paths.map(async (path) => {
                 try {
                     const stats = await stat(path);
+                    console.log(stats)
                     if (stats) {
                         return path;
                     }
@@ -296,6 +297,7 @@ class SudoerLinux extends SudoerUnix {
         return new Promise(async (resolve, reject) => {
             let self = this,
                 result;
+                console.log(self)
             /* Detect utility for sudo mode */
             if (!self.binary) {
                 self.binary = await self.getBinary();
@@ -305,6 +307,7 @@ class SudoerLinux extends SudoerUnix {
                 options.env = Object.assign(options.env, {DISPLAY: ':0'});
             }
             let flags;
+                    console.log(self.binary)
             if (/gksudo/i.test(self.binary)) {
                 flags = '--preserve-env --sudo-mode ' +
                     `--description="${self.escapeDoubleQuotes(self.options.name)}"`;
