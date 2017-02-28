@@ -274,7 +274,7 @@ class SudoerLinux extends SudoerUnix {
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
-            './bin/gksudo'
+            `${dirname(__filename)}/bin/gksudo`
         ];
     }
 
@@ -282,19 +282,19 @@ class SudoerLinux extends SudoerUnix {
         return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
-                    path = await stat(path);
-                    return path;
-                } catch (err) {
-                    return null;
-                }
+                    const stats = await stat(path);
+                    if (stats) {
+                        return path;
+                    }
+                } catch (err) {}
+                return null;
             })
         )).filter((v) => v)[0];
     }
 
     async exec(command, options={}) {
+        let self = this;
         return new Promise(async (resolve, reject) => {
-            let self = this,
-                result;
             /* Detect utility for sudo mode */
             if (!self.binary) {
                 self.binary = await self.getBinary();
@@ -310,9 +310,9 @@ class SudoerLinux extends SudoerUnix {
             } else if (/pkexec/i.test(self.binary)) {
                 flags = '--disable-internal-agent';
             }
-            command = `${this.binary} ${flags} ${command}`;
+            command = `${self.binary} ${flags} ${command}`;
             try {
-                result = await exec(command, options);
+                const result = await exec(command, options);
                 return resolve(result);
             } catch (err) {
                 return reject(err);
@@ -358,7 +358,7 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        this.bundled = 'src\\bin\\elevate.exe';
+        this.bundled = join(`${dirname(__filename)}/bin`, 'elevate.exe');
         this.binary = null;
     }
 
