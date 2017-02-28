@@ -310,7 +310,7 @@ class SudoerLinux extends SudoerUnix {
             } else if (/pkexec/i.test(self.binary)) {
                 flags = '--disable-internal-agent';
             }
-            command = `${this.binary} ${flags} ${command}`;
+            command = `${self.binary} ${flags} ${command}`;
             try {
                 const result = await exec(command, options);
                 return resolve(result);
