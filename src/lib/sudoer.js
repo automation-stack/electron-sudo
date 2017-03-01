@@ -126,9 +126,9 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async exec(command, options={}) {
+        let self = this;
         return new Promise(async (resolve, reject) => {
-            let self = this,
-                env = self.joinEnv(options),
+            let env = self.joinEnv(options),
                 sudoCommand = ['/usr/bin/sudo -n', env.join(' '), '-s', command].join(' '),
                 result;
             await self.reset();
@@ -150,9 +150,9 @@ class SudoerDarwin extends SudoerUnix {
     }
 
     async spawn(command, args, options={}) {
+        let self = this;
         return new Promise(async (resolve, reject) => {
-            let self = this,
-                bin = '/usr/bin/sudo',
+            let bin = '/usr/bin/sudo',
                 cp;
             await self.reset();
             // Prompt password
@@ -185,7 +185,7 @@ class SudoerDarwin extends SudoerUnix {
             let icon = await self.readIcns(),
                 hash = self.hash(icon);
             // Copy applet to temporary directory
-            let source = join(`${dirname(__filename)}/bin`, 'applet.app'),
+            let source = join(__dirname, 'bin', 'applet.app'),
                 target = join(self.tmpdir, hash, `${self.options.name}.app`);
             try {
                 await mkdir(dirname(target));
@@ -274,7 +274,7 @@ class SudoerLinux extends SudoerUnix {
         this.paths = [
             '/usr/bin/gksudo',
             '/usr/bin/pkexec',
-            './bin/gksudo'
+            join(__dirname, 'bin', 'gksudo')
         ];
     }
 
@@ -282,8 +282,8 @@ class SudoerLinux extends SudoerUnix {
         return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
-                    path = await stat(path);
-                    return path;
+                    let stats = await stat(path);
+                    return stats ? path : null;
                 } catch (err) {
                     return null;
                 }
@@ -292,9 +292,8 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async exec(command, options={}) {
+        let self = this;
         return new Promise(async (resolve, reject) => {
-            let self = this,
-                result;
             /* Detect utility for sudo mode */
             if (!self.binary) {
                 self.binary = await self.getBinary();
@@ -312,7 +311,7 @@ class SudoerLinux extends SudoerUnix {
             }
             command = `${this.binary} ${flags} ${command}`;
             try {
-                result = await exec(command, options);
+                let result = await exec(command, options);
                 return resolve(result);
             } catch (err) {
                 return reject(err);
@@ -358,7 +357,7 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        this.bundled = 'src\\bin\\elevate.exe';
+        this.bundled = join(__dirname, 'bin', 'elevate.exe');
         this.binary = null;
     }
 
