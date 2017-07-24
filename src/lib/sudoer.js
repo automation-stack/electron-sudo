@@ -282,8 +282,12 @@ class SudoerLinux extends SudoerUnix {
         return (await Promise.all(
             this.paths.map(async (path) => {
                 try {
-                    path = await stat(path);
-                    return path;
+                    let result = await stat(path);
+                    if (result) {
+                        return path;
+                    } else {
+                        return null;
+                    }
                 } catch (err) {
                     return null;
                 }
@@ -299,6 +303,7 @@ class SudoerLinux extends SudoerUnix {
             if (!self.binary) {
                 self.binary = await self.getBinary();
             }
+            if (!options.env) options.env = process.env;
             if (options.env instanceof Object && !options.env.DISPLAY) {
                 // Force DISPLAY variable with default value which is required for UI dialog
                 options.env = Object.assign(options.env, {DISPLAY: ':0'});
@@ -327,6 +332,7 @@ class SudoerLinux extends SudoerUnix {
             if (!self.binary) {
                 self.binary = await self.getBinary();
             }
+            if (!options.env) options.env = process.env;
             if (options.env instanceof Object && !options.env.DISPLAY) {
                 // Force DISPLAY variable with default value which is required for UI dialog
                 options.env = Object.assign(options.env, {DISPLAY: ':0'});
