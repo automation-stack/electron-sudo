@@ -1,9 +1,17 @@
 import {tmpdir} from 'os';
-import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
+import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream, readdir, rmdir, stat as fs_stat, chmod} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
+import {promisify} from "bluebird";
 
 import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+
+const readdirAsync = promisify(readdir);
+const unlinkAsync = promisify(unlink);
+const rmdirAsync = promisify(rmdir);
+const statAsync = promisify(fs_stat);
+const mkdirAsync = promisify(mkdir);
+const chmodAsync = promisify(chmod);
 
 let {platform, env} = process;
 
@@ -51,6 +59,46 @@ class Sudoer {
             return;
         }
     }
+
+    async copy(source, target) {
+        let stats = await statAsync(source);
+        let mode = 0o755; // add execute permission, seems asar package will lose permission information.
+        if (stats.isDirectory()) {
+            try {
+                let stats = await statAsync(target);
+                if (stats.isDirectory()) {
+                    await chmodAsync(target, mode);
+                } else {
+                    await unlinkAsync(target);
+                    await mkdirAsync(target, mode);
+                }
+            } catch (error) {
+                await mkdirAsync(target, mode);
+            }
+            for (let file of await readdirAsync(source)) {
+                await this.copy(join(source, file), join(target, file))
+            }
+        } else {
+            try {
+                let stats = await statAsync(target);
+                if (stats.isDirectory()) {
+                    await rmdirAsync(target);
+                } else {
+                    await chmodAsync(target, mode);
+                }
+            } catch (error) {
+            }
+            return new Promise((resolve, reject)=> {
+                let readable = createReadStream(source);
+                readable.on("error", reject);
+                let writable = createWriteStream(target, {mode: mode});
+                writable.on("error", reject);
+                writable.on("close", resolve);
+                readable.pipe(writable);
+            })
+        }
+    }
+
 }
 
 
@@ -59,20 +107,6 @@ class SudoerUnix extends Sudoer {
     constructor(options={}) {
         super(options);
         if (!this.options.name) { this.options.name = 'Electron'; }
-    }
-
-    async copy(source, target) {
-        return new Promise(async (resolve, reject) => {
-            source = this.escapeDoubleQuotes(normalize(source));
-            target = this.escapeDoubleQuotes(normalize(target));
-            try {
-                let result = await exec(`/bin/cp -R -p "${source}" "${target}"`);
-                resolve(result);
-            }
-            catch (err) {
-                reject(err);
-            }
-        });
     }
 
     async remove(target) {
@@ -358,7 +392,7 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        this.bundled = 'src\\bin\\elevate.exe';
+        this.bundled = join(__dirname, 'bin', 'elevate.exe');
         this.binary = null;
     }
 
@@ -415,26 +449,16 @@ class SudoerWin32 extends Sudoer {
     }
 
     async prepare() {
-        let self = this;
-        return new Promise(async (resolve, reject) => {
-            if (self.binary) { return resolve(self.binary); }
-            // Copy applet to temporary directory
-            let target = join(this.tmpdir, 'elevate.exe');
-            if (!(await stat(target))) {
-                let copied = createWriteStream(target);
-                createReadStream(self.bundled).pipe(copied);
-                copied.on('close', () => {
-                    self.binary = target;
-                    return resolve(self.binary);
-                });
-                copied.on('error', (err) => {
-                    return reject(err);
-                });
-            } else {
-                self.binary = target;
-                resolve(self.binary);
-            }
-        });
+        if (this.binary) { return this.binary }
+
+        // Copy applet to temporary directory
+        let target = join(this.tmpdir, 'elevate.exe');
+		
+		// even target file exists, it still need to copy, otherwise once copy failed, this program will never works.
+		await this.copy(this.bundled, target)
+
+        this.binary = target;
+        return this.binary;
     }
 
     async exec(command, options={}) {
