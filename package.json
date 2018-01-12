@@ -29,12 +29,12 @@
   },
   "homepage": "https://github.com/automation-stack/electron-sudo#readme",
   "scripts": {
-    "build": "node_modules/webpack/bin/webpack.js --config ./webpack/config.babel.js",
+    "build": "node node_modules/webpack/bin/webpack.js --config ./webpack/config.babel.js",
     "build-win32": "node node_modules\\webpack\\bin\\webpack.js --config webpack\\config.babel.js",
     "prepublish": "npm run test",
     "lint": "node_modules/eslint/bin/eslint.js -c .eslintrc ./src",
     "test-win32": "npm run build-win32 && node node_modules\\mocha\\bin\\mocha --compilers js:babel-core/register tests",
-    "test": "npm run build && node_modules/mocha/bin/mocha --compilers js:babel-core/register ./tests"
+    "test": "npm run build && node node_modules/mocha/bin/mocha --compilers js:babel-core/register ./tests"
   },
   "devDependencies": {
     "babel-cli": "^6.10.1",
