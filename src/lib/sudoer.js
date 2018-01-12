@@ -1,5 +1,5 @@
 import {tmpdir} from 'os';
-import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} from 'fs';
+import {watchFile, unwatchFile, unlinkSync, createReadStream, createWriteStream} from 'fs';
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
@@ -470,8 +470,8 @@ class SudoerWin32 extends Sudoer {
 
     clean (cp) {
         unwatchFile(cp.files.output);
-        unlink(cp.files.batch);
-        unlink(cp.files.output);
+        unlinkSync(cp.files.batch);
+        unlinkSync(cp.files.output);
     }
 }
 
