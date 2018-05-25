@@ -57,10 +57,20 @@ async function stat(target) {
     }
 }
 
+async function access(target, mode) {
+    let _access = promisify(fs.access);
+    try {
+        await _access(target, mode);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
 let open = promisify(fs.open),
     mkdir = promisify(fs.mkdir),
     readFile = promisify(fs.readFile),
     writeFile = promisify(fs.writeFile);
 
 
-export {readFile, writeFile, spawn, exec, mkdir, stat, open};
+export {readFile, writeFile, spawn, exec, mkdir, stat, open, access};
