@@ -3,7 +3,7 @@ import {watchFile, unwatchFile, unlink, createReadStream, createWriteStream} fro
 import {normalize, join, dirname} from 'path';
 import {createHash} from 'crypto';
 
-import {readFile, writeFile, exec, spawn, mkdir, stat} from '~/lib/utils';
+import {readFile, writeFile, exec, spawn, mkdir, stat, access} from '~/lib/utils';
 
 let {platform, env} = process;
 
@@ -279,16 +279,13 @@ class SudoerLinux extends SudoerUnix {
     }
 
     async getBinary() {
-        return (await Promise.all(
-            this.paths.map(async (path) => {
-                try {
-                    path = await stat(path);
-                    return path;
-                } catch (err) {
-                    return null;
-                }
-            })
-        )).filter((v) => v)[0];
+        for (let path of this.paths) {
+            if (await access(path)) {
+                return path;
+            }
+        }
+
+        return null;
     }
 
     async exec(command, options={}) {
