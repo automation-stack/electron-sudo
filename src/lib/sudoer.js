@@ -358,7 +358,7 @@ class SudoerWin32 extends Sudoer {
 
     constructor(options={}) {
         super(options);
-        this.bundled = require('path').resolve(__dirname, 'src\\bin\\elevate.exe');
+        this.bundled = require('path').resolve(__dirname, '.\\bin\\elevate.exe');
         this.binary = null;
     }
 
@@ -391,22 +391,22 @@ class SudoerWin32 extends Sudoer {
         // If we have process then emit watched and stored data to stdout
         cp.stdout.emit('data', output);
         let watcher = watchFile(
-                cp.files.output, {persistent: true, interval: 1},
-                () => {
-                    let stream = createReadStream(
-                            cp.files.output,
-                            {start: watcher.last}
-                        ),
-                        size = 0;
-                    stream.on('data', (data) => {
-                        size += data.length;
-                        if (cp) { cp.stdout.emit('data', data); }
-                    });
-                    stream.on('close', () => {
-                        cp.last += size;
-                    });
-                }
-            );
+            cp.files.output, {persistent: true, interval: 1},
+            () => {
+                let stream = createReadStream(
+                    cp.files.output,
+                    {start: watcher.last}
+                    ),
+                    size = 0;
+                stream.on('data', (data) => {
+                    size += data.length;
+                    if (cp) { cp.stdout.emit('data', data); }
+                });
+                stream.on('close', () => {
+                    cp.last += size;
+                });
+            }
+        );
         cp.last = output.length;
         cp.on('exit', () => {
             self.clean(cp);
@@ -421,8 +421,9 @@ class SudoerWin32 extends Sudoer {
             // Copy applet to temporary directory
             let target = join(this.tmpdir, 'elevate.exe');
             if (!(await stat(target))) {
+                let readStream = createReadStream(self.bundled);
                 let copied = createWriteStream(target);
-                createReadStream(self.bundled).pipe(copied);
+                readStream.pipe(copied);
                 copied.on('close', () => {
                     self.binary = target;
                     return resolve(self.binary);
