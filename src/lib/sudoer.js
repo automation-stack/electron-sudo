@@ -470,8 +470,8 @@ class SudoerWin32 extends Sudoer {
 
     clean (cp) {
         unwatchFile(cp.files.output);
-        unlink(cp.files.batch);
-        unlink(cp.files.output);
+        unlink(cp.files.batch, () => {/*ignored*/});
+        unlink(cp.files.output, () => {/*ignored*/});
     }
 }
 
